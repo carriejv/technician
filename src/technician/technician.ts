@@ -9,6 +9,8 @@ import { Interpreter, InterpreterSync, KnownConfigSource, PredicatedInterpreter,
  * and providing caching and overriding capability.
  */
 export class Technician {
+    
+    // TODO: Move interpreters out of read calls?
 
     /** Internal entity cache. This entity cache does not track type, but should be consistent as long as it is not directly modified. */
     private entityCache: Map<string, CachedConfigEntity<any>> = new Map();
@@ -57,7 +59,7 @@ export class Technician {
 
         // Read in the target config data from potential sources.
         let runningPriority = cacheItem?.priority;
-        let isNewResult
+        let isNewResult;
         for(const knownSource of this.knownSources) {
             // Skip any source that doesn't exceed a currently-valid priority
             if(runningPriority !== undefined && runningPriority > knownSource.priority) {
@@ -109,7 +111,8 @@ export class Technician {
     }
 
     /**
-     * Reads a all config values asynchronously, optionally parsing them into type T using an `interpreter` function.
+     * Reads a all config values asynchronously, optionally parsing them into type(s) T using `interpreter` function(s).
+     * Depending on the type and quantity of sources, this may be a very expensive operation. Use with caution.
      * @param interpreter   The interpreter function(s) to run on the config value.
      *                      This function will be called on a config value after it is read, setting the config value to its return value.
      *                      This may be used to check data for validity, deserialize data, and/or any other work necessary to parse the raw secret data as type T.
@@ -117,12 +120,38 @@ export class Technician {
      *                      If an interpreter has a predicate provided, config sources that do not match the predicate will be ignored.
      */
     public async readAll<T = Buffer>(interpreter?: Interpreter<T> | PredicatedInterpreter<T> | Interpreter<T>[] | PredicatedInterpreter<T>[]): Promise<{[key: string]: T}> {
-        // Perform a ReadAll from all available sources and build a raw entity map of data buffers.
-        let rawEntityMap = {};
+        const configEntityMap: {[key: string]: Partial<CachedConfigEntity<T>>[]} = {};
+
+        // Seed the configEntityMap with cached values.
+
+
+        // Perform a readAll from all available sources and build a map of data buffers.
         for(const knownSource of this.knownSources) {
-            
+            const readResult = await knownSource.source.readAll();
+            // Skip sources with no return.
+            if(!readResult) {
+                continue;
+            }
+            for(const key of Object.keys(readResult)) {
+                // Initialize key returns if first result
+                if(!configEntityMap[key]) {
+                    configEntityMap[key] = [];
+                }
+                // Push new result.
+                configEntityMap[key].push({
+                    data: readResult[key],
+                    priority: knownSource.priority,
+                    source: knownSource.source
+                });
+            }
         }
-        
+
+        // Refine result object by finding highest priority valid intepretation for each key.
+        const finalConfigMap: {[key: string]: Partial<CachedConfigEntity<T>>} = {};
+        for(const key of Object.keys(configEntityMap)) {
+            let resultCandidate: Partial<CachedConfigEntity<T>>;
+            for()
+        }
         
         // Check cache. If cacheRespectsPriority is not enabled, return cached value automatically if it exists.
         const cacheItem = this.entityCache.get(key);

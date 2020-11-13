@@ -14,7 +14,7 @@ export interface ConfigSource {
      * If the read returns undefined, the value is considered to not exist in the source.
      * @param key The key of the secret to read.
      */
-    readAll(key: string): Promise<{[key: string]: Buffer}> | undefined;
+    readAll(): Promise<{[key: string]: Buffer}> | undefined;
 }
 
 /** Defines a source of config accessible synchnronously by Technician. */
@@ -31,7 +31,7 @@ export interface ConfigSourceSync {
      * If the read returns undefined, the value is considered to not exist in the source.
      * @param key The key of the secret to read.
      */
-    readAllSync(key: string): Promise<{[key: string]: Buffer}> | undefined;
+    readAllSync(): Promise<{[key: string]: Buffer}> | undefined;
 }
 
 /** Internal type used by Technician to store an async ConfigSource and related config. */
