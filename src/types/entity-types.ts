@@ -1,11 +1,11 @@
-import { ConfigSource } from "./source-types";
+import { MetaConfigSource, MetaConfigSourceSync } from "./source-types";
 
 /** Defines info about an entity being read, pre-interpretation. */
 export interface RawConfigEntity {
     /** The key of the entity. */
     key: string;
     /** The source from which the config value was read. */
-    source: ConfigSource
+    source: MetaConfigSource | MetaConfigSourceSync
     /** The data contents of the entity. */
     data: Buffer;
 }
