@@ -1,52 +1,48 @@
 import { DefaultInterpreters } from "..";
-import { CachedConfigEntity, ConfigEntity, RawConfigEntity } from "../types/entity-types";
+import { CachedConfigEntity, ConfigEntity } from "../types/entity-types";
 import { TechnicianParams } from "../types/param-types";
-import { Interpreter, InterpreterSync, KnownConfigSource, PredicatedInterpreter, PredicatedInterpreterSync } from "../types/source-types";
+import { ConfigSource, Interpreter, KnownConfigSource } from "../types/source-types";
 
 /** 
  * Technician manages a set of config sources,
  * allowing retrieval of config from a central service
  * and providing caching and overriding capability.
  */
-export class Technician {
-    
-    // TODO: Move interpreters out of read calls?
+export class Technician<T = Buffer> {
 
-    /** Internal entity cache. This entity cache does not track type, but should be consistent as long as it is not directly modified. */
-    private entityCache: Map<string, CachedConfigEntity<any>> = new Map();
+    // TODO: Nested Techs?
+    
+    /** Internal entity cache. */
+    private entityCache: Map<string, CachedConfigEntity<T>> = new Map();
 
     /** Array of known async entity sources. */
     private knownSources: KnownConfigSource[] = [];
 
     /**
      * Builds a new Technician instance.
+     * @param interpreter   The interpreter function to use when parsing config values.
+                            This function will be called on a raw buffer after it is read. Its return will be used & cached as the true config value.
+                            The return type of the interpreter function will be the type used for all values accessed by read(), etc.
+                            If the interpreter returns undefined, the config value is treated as nonexistent and will not be returned by read(), etc.
+                            Interpreters may be used to validatey, deserialize, decrypt, and/or do any other work necessary to parse the raw buffer into type T.
+                            If omitted, T is assumed to be Buffer and the secret data is returned as a raw Buffer.
      * @param params Params object. @see {@link TechnicianParams}.
      * @constructor Technician
      */
-    public constructor(private params?: TechnicianParams) {}
+    public constructor(
+        private interpreter: Interpreter<T> = DefaultInterpreters.asBuffer() as any, // As any cast required because <T = Buffer> default is not properly recognized.
+        private params?: TechnicianParams) {}
 
     /**
      * Reads a single config value by key asynchronously, optionally parsing it into type T using an `interpreter` function.
-     * @param key           The key of the config value to read
-     * @param interpreter   The interpreter function to run on the config value.
-     *                      This function will be called on a config value after it is read, setting the config value to its return value.
-     *                      This may be used to check data for validity, deserialize data, and/or any other work necessary to parse the raw secret data as type T.
-     *                      If omitted, T is assumed to be Buffer and the secret data is returned as a raw Buffer.
-     *                      If an interpreter and predicate are provided, config sources that do not match the predicate will be ignored.
+     * @param key   The key of the config value to read.
+     * @returns     A config value of type T or undefined if the key has no value.
      */
-    public async read<T = Buffer>(key: string, interpreter?: Interpreter<T> | PredicatedInterpreter<T>): Promise<T | undefined> {
+    public async read(key: string): Promise<T | undefined> {
         // Check cache. If cacheRespectsPriority is not enabled, return cached value automatically if it exists.
         const cacheItem = this.entityCache.get(key);
         if(cacheItem && !this.params?.cacheRespectsPriority) {
             return cacheItem.value;
-        }
-
-        // Add true predicate to unpredicated interpreter.
-        if(!this.isPredicatedInterpreter(interpreter)) {
-            interpreter = {
-                interpreter: interpreter ?? DefaultInterpreters.asBuffer() as any,
-                predicate: async () => true
-            }
         }
 
         // Initialize result buffer.
@@ -66,11 +62,11 @@ export class Technician {
                 continue;
             }
             const data = await knownSource.source.read(key);
-            // Skip any data blocks that do not exist or fail the predicate check.
-            if(!data || ! await interpreter.predicate({key, data, source: knownSource.source})) {
+            // Skip any data blocks that do not exist.
+            if(!data) {
                 continue;
             }
-            let interpreterResult = await interpreter.interpreter({key, data, source: knownSource.source});
+            let interpreterResult = await this.interpreter({key, data, source: knownSource.source});
             // If the interpreter returns undefined, it is assumed the input data was invalid and the source is skipped.
             if(interpreterResult === undefined) {
                 continue;
@@ -81,7 +77,7 @@ export class Technician {
                 isNewResult = true;
                 runningPriority = knownSource.priority;
                 // Build result object if a raw result was returned.
-                if(!this.isEntityObject(interpreterResult)) {
+                if(!this.isEntityWithParams(interpreterResult)) {
                     interpreterResult = {
                         value: interpreterResult
                     };
@@ -111,123 +107,110 @@ export class Technician {
     }
 
     /**
+     * Reads a single config value by key asynchronously, optionally parsing it into type T using an `interpreter` function.
+     * Throws a `ConfigNotFoundError` error if the value is missing.
+     * @param key           The key of the config value to read.
+     * @throws              A `ConfigNotFoundError` error if the value is missing.
+     * @returns             A config value of type T.
+     */
+    public async require(key: string): Promise<T> {
+        const value = await this.read(key);
+        if(value === undefined) {
+            throw new ConfigNotFoundError(`Key [${key}] not found in any configured source.`);
+        }
+        return value;
+    }
+
+    /**
      * Reads a all config values asynchronously, optionally parsing them into type(s) T using `interpreter` function(s).
      * Depending on the type and quantity of sources, this may be a very expensive operation. Use with caution.
-     * @param interpreter   The interpreter function(s) to run on the config value.
-     *                      This function will be called on a config value after it is read, setting the config value to its return value.
-     *                      This may be used to check data for validity, deserialize data, and/or any other work necessary to parse the raw secret data as type T.
-     *                      If omitted, T is assumed to be Buffer and the secret data is returned as a raw Buffer.
-     *                      If an interpreter has a predicate provided, config sources that do not match the predicate will be ignored.
+     * If a key exists with no value, the key exists in at least one source but has no valid associated data.
+     * @returns An object of key/value pairs, with values of type T.
      */
-    public async readAll<T = Buffer>(interpreter?: Interpreter<T> | PredicatedInterpreter<T> | Interpreter<T>[] | PredicatedInterpreter<T>[]): Promise<{[key: string]: T}> {
-        const configEntityMap: {[key: string]: Partial<CachedConfigEntity<T>>[]} = {};
-
-        // Seed the configEntityMap with cached values.
-
-
-        // Perform a readAll from all available sources and build a map of data buffers.
+    public async readAll(): Promise<{[key: string]: T | undefined}> {
+        // List all keys for all sources.
+        let keys: string[] = [];
         for(const knownSource of this.knownSources) {
-            const readResult = await knownSource.source.readAll();
-            // Skip sources with no return.
-            if(!readResult) {
-                continue;
+            keys = keys.concat(await knownSource.source.list())
+        }
+
+        // Build a set of unique keys
+        const keyset: Set<string> = new Set(keys);
+
+        // Read values
+        const result: {[key: string]: T | undefined} = {};
+        for(const key of keyset) {
+            result[key] = await this.read(key);
+        }
+
+        return result;
+    }
+
+    /** 
+     * Writes a value to the Technician cache.
+     * You probably shouldn't use this. Always prefer accessing config via a ConfigSource.
+     * @param key The key.
+     * @param value The value.
+     */
+    public write(key: string, value: CachedConfigEntity<T>) {
+        this.entityCache.set(key, value);
+    }
+
+    /**
+     * Adds ConfigSource(s) to Technician.
+     * @param sources   The config source(s) to add. May be a ConfigSource object, an object containing a source and priority,
+     *                  or an array of these. If passing an array of ConfigSources, the same priority will be used for each.
+     *                  A Technician<Buffer> may also be used as a ConfigSource for a higher-level Technician instance.
+     * @param priority  If passing in a raw ConfigSource, the priority may be passed separately.
+     *                  When reading a value, the source with the highest priority will be used.
+     *                  Default priority is 0.
+     *                  This param is ignored if {source, priorirty} object(s) are passed.
+     */
+    public addSource(sources: ConfigSource | ConfigSource[] | KnownConfigSource | KnownConfigSource[], priority?: number) {
+        // Handle singular params.
+        if(!Array.isArray(sources)) {
+            sources = [sources as any];
+        }
+        // Add sources.
+        for(const source of sources) {
+            this.knownSources.push(this.isSourceWithParams(source) ? source : {source, priority: priority ?? 0});
+        }
+    }
+
+    /**
+     * Edits the priority of ConfigSource(s) in Technician.
+     * @param sources   The config source(s) to edit. Sources are managed by reference, so the ConfigSource passed in
+     *                  must be the same object passed in to addSource.
+     *                  If a {source, priority} object was passed in, the only the source should be passed in to editSource.
+     * @param priority  If passing in a raw ConfigSource, the priority may be passed separately.
+     *                  When reading a value, the source with the highest priority will be used.
+     */
+    public editSource(sources: ConfigSource | ConfigSource[], priority: number) {
+        // Handle singular params.
+        if(!Array.isArray(sources)) {
+            sources = [sources];
+        }
+        // Re-prio matching sources.
+        this.knownSources.map(x => {
+            if((sources as ConfigSource[]).includes(x.source)) {
+                x.priority = priority;
             }
-            for(const key of Object.keys(readResult)) {
-                // Initialize key returns if first result
-                if(!configEntityMap[key]) {
-                    configEntityMap[key] = [];
-                }
-                // Push new result.
-                configEntityMap[key].push({
-                    data: readResult[key],
-                    priority: knownSource.priority,
-                    source: knownSource.source
-                });
-            }
+        });
+    }
+
+    /**
+     * Delete ConfigSource(s) from Technician.
+     * @param sources   The config source(s) to delete. Sources are managed by reference, so the ConfigSource passed in
+     *                  must be the same object passed in to addSource.
+     *                  If a {source, priority} object was passed in, the only the source should be passed in to deleteSource.
+     */
+    public deleteSource(sources: ConfigSource | ConfigSource[]) {
+        // Handle singular params.
+        if(!Array.isArray(sources)) {
+            sources = [sources];
         }
-
-        // Refine result object by finding highest priority valid intepretation for each key.
-        const finalConfigMap: {[key: string]: Partial<CachedConfigEntity<T>>} = {};
-        for(const key of Object.keys(configEntityMap)) {
-            let resultCandidate: Partial<CachedConfigEntity<T>>;
-            for()
-        }
-        
-        // Check cache. If cacheRespectsPriority is not enabled, return cached value automatically if it exists.
-        const cacheItem = this.entityCache.get(key);
-        if(cacheItem && !this.params?.cacheRespectsPriority) {
-            return cacheItem.value;
-        }
-
-        // Add true predicate to unpredicated interpreter.
-        if(!this.isPredicatedInterpreter(interpreter)) {
-            interpreter = {
-                interpreter: interpreter ?? DefaultInterpreters.asBuffer() as any,
-                predicate: async () => true
-            }
-        }
-
-        // Initialize return values (to cached item, if it exists).
-        let data = cacheItem?.data;
-        let result = cacheItem?.value;
-        let priority = cacheItem?.priority
-        let resultSource: KnownConfigSource | undefined = cacheItem ? {source: cacheItem.source, priority: cacheItem.priority} : undefined;
-        let isNewResult = false;
-
-        // Filter source list to only include sources of higher priority than existing (cacheRespectsPriority).
-        const potentialSources = this.knownSources.filter(e => priority !== undefined && e.priority > priority);
-
-        // Read in the target config data from potential sources.
-        for(const knownSource of potentialSources) {
-            data = await knownSource.source.read(key);
-            // Skip any interpreters which fail their predicate.
-            if(! await interpreter.predicate({key, data, source: knownSource.source})) {
-                continue;
-            }
-            // If source has a higher priority than the currently-used source, replace it.
-            if(priority === undefined || knownSource.priority > priority) {
-                const interpreterResult = await interpreter.interpreter({key, data, source: knownSource.source});
-                // Update final result if interpreter result exists.
-                if(interpreterResult !== undefined) {
-                    result = interpreterResult;
-                    resultSource = knownSource;
-                    priority = knownSource.priority;
-                    isNewResult = true;
-                }
-            }
-        }
-
-        // If no result found, return undefined.
-        // The second condition exists to convince TS that resultSource, priority exists.
-        if(result === undefined || priority === undefined || resultSource === undefined) {
-            return undefined;
-        }
-
-        // Build result object if a raw result was returned.
-        if(!this.isEntityObject(result)) {
-            result = {
-                value: result
-            };
-        }
-
-        // Calculate cache length. Entity > Source > Global
-        result.cacheFor = result.cacheFor ?? resultSource.cacheFor ?? this.params?.defaultCacheLength;
-
-        // Cache the value if it doesn't exist or has been replaced by a higher-priority result.
-        if(isNewResult) {
-            this.entityCache.set(key, {
-                key,
-                data,
-                value: result.value,
-                source: resultSource.source,
-                priority: priority,
-                cacheFor: result.cacheFor,
-                cacheUntil: result.cacheFor ? Date.now() + result.cacheFor : Infinity
-            });
-        }
-
-        // Return the value
-        return result.value;
+        // Filter source list.
+        this.knownSources = this.knownSources.filter(x => !(sources as ConfigSource[]).includes(x.source));
     }
 
     /** 
@@ -243,38 +226,19 @@ export class Technician {
     }
 
     /**
-     * Switches Technician to run in asynchronous mode.
-     * This will clear the cache and all configured sources.
-     * In async mode, all sources, interpreters, and predicates must be asynchronous.
-     */
-    public switchToAsync() {
-        
-    }
-
-    /**
-     * Switches Technician to run in synchronous mode.
-     * This will clear the cache and all configured sources.
-     * In sync mode, all sources, interpreters, and predicates must be synchronous.
-     */
-    public switchToSync() {
-
-    }
-
-    private getHighestPriorityRawEntity(rawEntities: RawConfigEntity[])
-
-    /**
      * Checks if the return of an interpreter function is a raw value or an entity object with config.
      * @param entity The interpreter return value.
      */
-    private isEntityObject<T>(entity: ConfigEntity<T> | T): entity is ConfigEntity<T> {
+    private isEntityWithParams<T>(entity: ConfigEntity<T> | T): entity is ConfigEntity<T> {
         return typeof entity === 'object' && Object.keys(entity).includes('value');
     }
 
     /**
-     * Checks if an interpreter is a basic interpreter or an object with a predicate configured.
-     * @param entity The interpreter return value.
+     * Checks if a ConfigSource is a raw source object or a KnownConfigSource object with config.
+     * @param source The source object.
      */
-    private isPredicatedInterpreter<T>(interpreter: Interpreter<T> | PredicatedInterpreter<T> |  InterpreterSync<T> | PredicatedInterpreterSync<T> | undefined): interpreter is PredicatedInterpreter<T> | PredicatedInterpreterSync<T> {
-        return typeof interpreter === 'object' && Object.keys(interpreter).includes('interpreter') && Object.keys(interpreter).includes('predicate');
+    private isSourceWithParams(source: ConfigSource | KnownConfigSource): source is KnownConfigSource {
+        return Object.keys(source).includes('source') && Object.keys(source).includes('number');
     }
+
 }

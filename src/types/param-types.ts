@@ -8,4 +8,6 @@ export interface TechnicianParams {
     cacheRespectsPriority?: boolean;
     /** Default cache length in ms. */
     defaultCacheLength?: number;
+    /** If true, Technician will prioritize running fewer interpreter functions over fewer source reads. */
+    //TODO?: expensiveInterpreter?: boolean;
 }

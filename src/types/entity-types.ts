@@ -17,7 +17,7 @@ export interface RawConfigEntity {
 export interface ConfigEntity<T> {
     /** The intepreted value to store and return. */
     value: T;
-    /** Timestamp for cache expirey. If unset, caches forever. If negative, does not cache. */
+    /** Timestamp for cache expirey. If unset, caches forever. If negative, does not cache. This value supercedes global and source-specific cache config. */
     cacheFor?: number;
 }
 
