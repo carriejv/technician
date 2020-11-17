@@ -1,10 +1,7 @@
-import rewiremock from 'rewiremock';
-rewiremock.overrideEntryPoint(module);
-
 import { expect } from 'chai';
-import { DSSReader } from '../src';
+import { Technician } from '../src';
 
-describe('DSSReader', () => {
+describe('Technician', () => {
 
     const expectedBufferUTF8 = Buffer.from('This is some UTF8.', 'utf8');
     const expectedBufferJSON = Buffer.from('{"this": "is", "valid": "json"}', 'utf8');
