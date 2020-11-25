@@ -1,4 +1,5 @@
 import { DefaultInterpreters } from "..";
+import { ConfigNotFoundError } from "../error/config-not-found-error";
 import { CachedConfigEntity, ConfigEntity } from "../types/entity-types";
 import { TechnicianParams } from "../types/param-types";
 import { Interpreter, KnownConfigSource, MetaConfigSource } from "../types/source-types";
@@ -9,8 +10,6 @@ import { Interpreter, KnownConfigSource, MetaConfigSource } from "../types/sourc
  * and providing caching and overriding capability.
  */
 export class Technician<T = Buffer> {
-
-    //TODO: Alias at Tech-level only? Condense many keys into one.
 
     /** Internal entity cache. */
     private entityCache: Map<string, CachedConfigEntity<T>> = new Map();
@@ -50,7 +49,7 @@ export class Technician<T = Buffer> {
         }
 
         // Check if key is an alias.
-        let sourceKeys = this.aliases.get(key) ?? [key];
+        const sourceKeys = this.aliases.get(key) ?? [key];
 
         // Initialize result buffer.
         let resultCandidate: CachedConfigEntity<T> | undefined;
@@ -172,7 +171,7 @@ export class Technician<T = Buffer> {
      * @param aliasKey The alias key to create.
      * @param sourceKeys The source keys to alias.
      */
-    public alias(aliasKey: string, sourceKeys: string[]) {
+    public alias(aliasKey: string, sourceKeys: string[]): void {
         this.aliases.set(aliasKey, sourceKeys);
     }
 
@@ -186,7 +185,7 @@ export class Technician<T = Buffer> {
      *                  Default priority is 0.
      *                  This param is ignored if {source, priorirty} object(s) are passed.
      */
-    public addSource(sources: MetaConfigSource | MetaConfigSource[] | KnownConfigSource | KnownConfigSource[], priority?: number) {
+    public addSource(sources: MetaConfigSource | MetaConfigSource[] | KnownConfigSource | KnownConfigSource[], priority?: number): void {
         // Handle singular params.
         if(!Array.isArray(sources)) {
             sources = [sources as any];
@@ -204,7 +203,7 @@ export class Technician<T = Buffer> {
      *                  If a {source, priority} object was passed in, the only the source should be passed in to editSource.
      * @param priority  The new priority for the matching config source.
      */
-    public editSource(sources: MetaConfigSource | MetaConfigSource[], priority: number) {
+    public editSource(sources: MetaConfigSource | MetaConfigSource[], priority: number): void {
         // Handle singular params.
         if(!Array.isArray(sources)) {
             sources = [sources];
@@ -223,7 +222,7 @@ export class Technician<T = Buffer> {
      *                  must be the same object passed in to addSource.
      *                  If a {source, priority} object was passed in, the only the source should be passed in to deleteSource.
      */
-    public deleteSource(sources: MetaConfigSource | MetaConfigSource[]) {
+    public deleteSource(sources: MetaConfigSource | MetaConfigSource[]): void {
         // Handle singular params.
         if(!Array.isArray(sources)) {
             sources = [sources];
@@ -236,7 +235,7 @@ export class Technician<T = Buffer> {
      * Clears the internal cache.
      * @param key If provided, only deletes a single value from the cache.
      */
-    public clearCache(key?: string) {
+    public clearCache(key?: string): void {
         if(key) {
             this.entityCache.delete(key);
         } else {

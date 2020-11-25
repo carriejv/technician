@@ -1,4 +1,5 @@
 import { DefaultInterpretersSync } from "../interpreters/default-interpreters-sync";
+import { ConfigNotFoundError } from "../error/config-not-found-error";
 import { CachedConfigEntity, ConfigEntity } from "../types/entity-types";
 import { TechnicianParams } from "../types/param-types";
 import { InterpreterSync, KnownConfigSourceSync, MetaConfigSourceSync } from "../types/source-types";
@@ -16,6 +17,9 @@ export class TechnicianSync<T = Buffer> {
 
     /** Array of known sync entity sources. */
     private knownSources: KnownConfigSourceSync[] = [];
+
+    /** Key alias map. */
+    private aliases: Map<string, string[]> = new Map();
 
     /** 
      * Compatability layer for nesting TechnicianSync<Buffer> as a ConfigSourceSync.
@@ -52,6 +56,9 @@ export class TechnicianSync<T = Buffer> {
             return cacheItem.value;
         }
 
+        // Check if key is an alias.
+        const sourceKeys = this.aliases.get(key) ?? [key];
+
         // Initialize result buffer.
         let resultCandidate: CachedConfigEntity<T> | undefined;
 
@@ -63,44 +70,46 @@ export class TechnicianSync<T = Buffer> {
         // Read in the target config data from potential sources.
         let runningPriority = cacheItem?.priority;
         let isNewResult;
-        for(const knownSource of this.knownSources) {
-            // Skip any source that doesn't exceed a currently-valid priority
-            if(runningPriority !== undefined && runningPriority > knownSource.priority) {
-                continue;
-            }
-            const data = knownSource.source.readSync(key);
-            // Skip any data blocks that do not exist.
-            if(!data) {
-                continue;
-            }
-            let interpreterResult = this.interpreter({key, data, source: knownSource.source});
-            // If the interpreter returns undefined, it is assumed the input data was invalid and the source is skipped.
-            if(interpreterResult === undefined) {
-                continue;
-            }
-            // The candidate is valid. Check priority.
-            // Update candidate if priority is higher than existing, or no existing candidate.
-            if(runningPriority !== undefined && knownSource.priority > runningPriority) {
-                isNewResult = true;
-                runningPriority = knownSource.priority;
-                // Build result object if a raw result was returned.
-                if(!this.isEntityWithParams(interpreterResult)) {
-                    interpreterResult = {
-                        value: interpreterResult
+        for(const sourceKey of sourceKeys) {
+            for(const knownSource of this.knownSources) {
+                // Skip any source that doesn't exceed a currently-valid priority
+                if(runningPriority !== undefined && runningPriority > knownSource.priority) {
+                    continue;
+                }
+                const data = knownSource.source.readSync(sourceKey);
+                // Skip any data blocks that do not exist.
+                if(!data) {
+                    continue;
+                }
+                let interpreterResult = this.interpreter({key, data, source: knownSource.source});
+                // If the interpreter returns undefined, it is assumed the input data was invalid and the source is skipped.
+                if(interpreterResult === undefined) {
+                    continue;
+                }
+                // The candidate is valid. Check priority.
+                // Update candidate if priority is higher than existing, or no existing candidate.
+                if(runningPriority !== undefined && knownSource.priority > runningPriority) {
+                    isNewResult = true;
+                    runningPriority = knownSource.priority;
+                    // Build result object if a raw result was returned.
+                    if(!this.isEntityWithParams(interpreterResult)) {
+                        interpreterResult = {
+                            value: interpreterResult
+                        };
+                    }
+                    // Calculate cache length. Entity > Source > Global
+                    interpreterResult.cacheFor = interpreterResult.cacheFor ?? knownSource.cacheFor ?? this.params?.defaultCacheLength;
+                    // Update result candidate
+                    resultCandidate = {
+                        key,
+                        data,
+                        value: interpreterResult.value,
+                        priority: knownSource.priority,
+                        source: knownSource.source,
+                        cacheFor: interpreterResult.cacheFor,
+                        cacheUntil: interpreterResult.cacheFor ? Date.now() + interpreterResult.cacheFor : Infinity
                     };
                 }
-                // Calculate cache length. Entity > Source > Global
-                interpreterResult.cacheFor = interpreterResult.cacheFor ?? knownSource.cacheFor ?? this.params?.defaultCacheLength;
-                // Update result candidate
-                resultCandidate = {
-                    key,
-                    data,
-                    value: interpreterResult.value,
-                    priority: knownSource.priority,
-                    source: knownSource.source,
-                    cacheFor: interpreterResult.cacheFor,
-                    cacheUntil: interpreterResult.cacheFor ? Date.now() + interpreterResult.cacheFor : Infinity
-                };
             }
         }
 
@@ -148,24 +157,29 @@ export class TechnicianSync<T = Buffer> {
      * @returns An array of all known config keys contained in all added sources.
      */
     public list(): string[] {
-        // List all keys for all sources.
-        let keys: string[] = [];
+        // List all keys for all sources. Start with aliases created in Technician itself.
+        let keys: string[] = Array.from(this.aliases.keys());
         for(const knownSource of this.knownSources) {
             keys = keys.concat(knownSource.source.listSync())
         }
 
-        // Dedupe keys via Set and return.
+        // Dedupe keys via Set.
         return Array.from(new Set(keys));
     }
 
-    /** 
-     * Writes a value to the Technician cache.
-     * You probably shouldn't use this. Always prefer accessing config via a ConfigSource.
-     * @param key The key.
-     * @param value The value.
+    /**
+     * Creates an alias key. An alias key can match any number of other keys.
+     * When read, the alias will be treated as a single key, reading from any underlying keys
+     * and picking the highest priority result from the entire set.
+     * This can be used to create a single config entity from multiple sources,
+     * such as a `id_rsa.pub` file and an `RSA_PUBKEY` env var.
+     * The alias does not prevent directly reading a single underlying key.
+     * The alias is a distinct entity in the cache. Reading an alias will not use cached results from previous reads of specific keys.
+     * @param aliasKey The alias key to create.
+     * @param sourceKeys The source keys to alias.
      */
-    public write(key: string, value: CachedConfigEntity<T>) {
-        this.entityCache.set(key, value);
+    public alias(aliasKey: string, sourceKeys: string[]): void {
+        this.aliases.set(aliasKey, sourceKeys);
     }
 
     /**
@@ -178,7 +192,7 @@ export class TechnicianSync<T = Buffer> {
      *                  Default priority is 0.
      *                  This param is ignored if {source, priorirty} object(s) are passed.
      */
-    public addSource(sources: MetaConfigSourceSync | MetaConfigSourceSync[] | KnownConfigSourceSync | KnownConfigSourceSync[], priority?: number) {
+    public addSource(sources: MetaConfigSourceSync | MetaConfigSourceSync[] | KnownConfigSourceSync | KnownConfigSourceSync[], priority?: number): void {
         // Handle singular params.
         if(!Array.isArray(sources)) {
             sources = [sources as any];
@@ -197,7 +211,7 @@ export class TechnicianSync<T = Buffer> {
      * @param priority  If passing in a raw ConfigSource, the priority may be passed separately.
      *                  When reading a value, the source with the highest priority will be used.
      */
-    public editSource(sources: MetaConfigSourceSync | MetaConfigSourceSync[], priority: number) {
+    public editSource(sources: MetaConfigSourceSync | MetaConfigSourceSync[], priority: number): void {
         // Handle singular params.
         if(!Array.isArray(sources)) {
             sources = [sources];
@@ -216,7 +230,7 @@ export class TechnicianSync<T = Buffer> {
      *                  must be the same object passed in to addSource.
      *                  If a {source, priority} object was passed in, the only the source should be passed in to deleteSource.
      */
-    public deleteSource(sources: MetaConfigSourceSync | MetaConfigSourceSync[]) {
+    public deleteSource(sources: MetaConfigSourceSync | MetaConfigSourceSync[]): void {
         // Handle singular params.
         if(!Array.isArray(sources)) {
             sources = [sources];
@@ -229,7 +243,7 @@ export class TechnicianSync<T = Buffer> {
      * Clears the internal cache.
      * @param key If provided, only deletes a single value from the cache.
      */
-    public clearCache(key?: string) {
+    public clearCache(key?: string): void {
         if(key) {
             this.entityCache.delete(key);
         } else {
