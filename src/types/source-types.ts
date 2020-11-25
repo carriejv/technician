@@ -25,7 +25,7 @@ export interface ConfigSource {
      * This should provide all keys for the object returned by readAll().
      * @returns An array of strings containing all keys known to the config source. Should return an empty array if no keys are present.
      */
-    list(): Promise<[string]>;
+    list(): Promise<string[]>;
 }
 
 /** Defines a source of config accessible synchnronously by Technician. */
@@ -51,7 +51,7 @@ export interface ConfigSourceSync {
      * This should provide all keys for the object returned by readAllSync().
      * @returns An array of strings containing all keys known to the config source. Should return an empty array if no keys are present.
      */
-    listSync(): [string];
+    listSync(): string[];
 }
 
 /** Internal type used by Technician to store an async ConfigSource and related config. */
@@ -76,13 +76,15 @@ export interface KnownConfigSourceSync {
 
 /** 
  * Utility type that encapsulates anything usable as a ConfigSource, including Technician<Buffer>.
- * Typescript currently has no ability to define a "conditional implements" only in the case of <T = Buffer> for Technician.
+ * Typescript currently has no ability to define a "conditional implements" only in the case of <T = Buffer> for Technician,
+ * thus making this typing necessary.
  */
 export type MetaConfigSource = ConfigSource | Technician<Buffer>;
 
 /** 
  * Utility type that encapsulates anything usable as a ConfigSourceSync, including Technician<Buffer>.
- * Typescript currently has no ability to define a "conditional implements" only in the case of <T = Buffer> for Technician.
+ * Typescript currently has no ability to define a "conditional implements" only in the case of <T = Buffer> for Technician,
+ * thus making this typing necessary.
  */
 export type MetaConfigSourceSync = ConfigSourceSync | TechnicianSync<Buffer>;
 

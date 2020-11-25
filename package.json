@@ -1,7 +1,7 @@
 {
 	"name": "technician",
-	"version": "1.0.0",
-	"description": "Access, manage, cache, and export all your config from a single service. Supports Typescript w/ type inferrance for config.",
+	"version": "0.1.0",
+	"description": "Access, manage, cache, and export all your config from a single service. Supports Typescript w/ typed config value output.",
 	"keywords": [
 		"config",
 		"configuration",

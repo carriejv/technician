@@ -10,11 +10,16 @@ import { Interpreter, KnownConfigSource, MetaConfigSource } from "../types/sourc
  */
 export class Technician<T = Buffer> {
 
+    //TODO: Alias at Tech-level only? Condense many keys into one.
+
     /** Internal entity cache. */
     private entityCache: Map<string, CachedConfigEntity<T>> = new Map();
 
     /** Array of known async entity sources. */
     private knownSources: KnownConfigSource[] = [];
+
+    /** Key alias map. */
+    private aliases: Map<string, string[]> = new Map();
 
     /**
      * Builds a new Technician instance.
@@ -37,11 +42,15 @@ export class Technician<T = Buffer> {
      * @returns     A config value of type T or undefined if the key has no value.
      */
     public async read(key: string): Promise<T | undefined> {
+
         // Check cache. If cacheRespectsPriority is not enabled, return cached value automatically if it exists.
         const cacheItem = this.entityCache.get(key);
         if(cacheItem && !this.params?.cacheRespectsPriority) {
             return cacheItem.value;
         }
+
+        // Check if key is an alias.
+        let sourceKeys = this.aliases.get(key) ?? [key];
 
         // Initialize result buffer.
         let resultCandidate: CachedConfigEntity<T> | undefined;
@@ -52,46 +61,49 @@ export class Technician<T = Buffer> {
         }
 
         // Read in the target config data from potential sources.
+        // If the key is an alias, all potential subkeys will be checked.
         let runningPriority = cacheItem?.priority;
         let isNewResult;
-        for(const knownSource of this.knownSources) {
-            // Skip any source that doesn't exceed a currently-valid priority
-            if(runningPriority !== undefined && runningPriority > knownSource.priority) {
-                continue;
-            }
-            const data = await knownSource.source.read(key);
-            // Skip any data blocks that do not exist.
-            if(!data) {
-                continue;
-            }
-            let interpreterResult = await this.interpreter({key, data, source: knownSource.source});
-            // If the interpreter returns undefined, it is assumed the input data was invalid and the source is skipped.
-            if(interpreterResult === undefined) {
-                continue;
-            }
-            // The candidate is valid. Check priority.
-            // Update candidate if priority is higher than existing, or no existing candidate.
-            if(runningPriority !== undefined && knownSource.priority > runningPriority) {
-                isNewResult = true;
-                runningPriority = knownSource.priority;
-                // Build result object if a raw result was returned.
-                if(!this.isEntityWithParams(interpreterResult)) {
-                    interpreterResult = {
-                        value: interpreterResult
+        for(const sourceKey of sourceKeys) {
+            for(const knownSource of this.knownSources) {
+                // Skip any source that doesn't exceed a currently-valid priority
+                if(runningPriority !== undefined && runningPriority > knownSource.priority) {
+                    continue;
+                }
+                const data = await knownSource.source.read(sourceKey);
+                // Skip any data blocks that do not exist.
+                if(!data) {
+                    continue;
+                }
+                let interpreterResult = await this.interpreter({key, data, source: knownSource.source});
+                // If the interpreter returns undefined, it is assumed the input data was invalid and the source is skipped.
+                if(interpreterResult === undefined) {
+                    continue;
+                }
+                // The candidate is valid. Check priority.
+                // Update candidate if priority is higher than existing, or no existing candidate.
+                if(runningPriority !== undefined && knownSource.priority > runningPriority) {
+                    isNewResult = true;
+                    runningPriority = knownSource.priority;
+                    // Build result object if a raw result was returned.
+                    if(!this.isEntityWithParams(interpreterResult)) {
+                        interpreterResult = {
+                            value: interpreterResult
+                        };
+                    }
+                    // Calculate cache length. Entity > Source > Global
+                    interpreterResult.cacheFor = interpreterResult.cacheFor ?? knownSource.cacheFor ?? this.params?.defaultCacheLength;
+                    // Update result candidate
+                    resultCandidate = {
+                        key,
+                        data,
+                        value: interpreterResult.value,
+                        priority: knownSource.priority,
+                        source: knownSource.source,
+                        cacheFor: interpreterResult.cacheFor,
+                        cacheUntil: interpreterResult.cacheFor ? Date.now() + interpreterResult.cacheFor : Infinity
                     };
                 }
-                // Calculate cache length. Entity > Source > Global
-                interpreterResult.cacheFor = interpreterResult.cacheFor ?? knownSource.cacheFor ?? this.params?.defaultCacheLength;
-                // Update result candidate
-                resultCandidate = {
-                    key,
-                    data,
-                    value: interpreterResult.value,
-                    priority: knownSource.priority,
-                    source: knownSource.source,
-                    cacheFor: interpreterResult.cacheFor,
-                    cacheUntil: interpreterResult.cacheFor ? Date.now() + interpreterResult.cacheFor : Infinity
-                };
             }
         }
 
@@ -107,9 +119,9 @@ export class Technician<T = Buffer> {
     /**
      * Reads a single config value by key asynchronously, optionally parsing it into type T using an `interpreter` function.
      * Throws a `ConfigNotFoundError` error if the value is missing.
-     * @param key           The key of the config value to read.
-     * @throws              A `ConfigNotFoundError` error if the value is missing.
-     * @returns             A config value of type T.
+     * @param key   The key of the config value to read.
+     * @throws      `ConfigNotFoundError` error if the value is missing.
+     * @returns     A config value of type T.
      */
     public async require(key: string): Promise<T> {
         const value = await this.read(key);
@@ -139,24 +151,29 @@ export class Technician<T = Buffer> {
      * @returns An array of all known config keys contained in all added sources.
      */
     public async list(): Promise<string[]> {
-        // List all keys for all sources.
-        let keys: string[] = [];
+        // List all keys for all sources. Start with aliases created in Technician itself.
+        let keys: string[] = Array.from(this.aliases.keys());
         for(const knownSource of this.knownSources) {
             keys = keys.concat(await knownSource.source.list())
         }
 
-        // Dedupe keys via Set and return.
+        // Dedupe keys via Set.
         return Array.from(new Set(keys));
     }
 
-    /** 
-     * Writes a value to the Technician cache.
-     * You probably shouldn't use this. Always prefer accessing config via a ConfigSource.
-     * @param key The key.
-     * @param value The value.
+    /**
+     * Creates an alias key. An alias key can match any number of other keys.
+     * When read, the alias will be treated as a single key, reading from any underlying keys
+     * and picking the highest priority result from the entire set.
+     * This can be used to create a single config entity from multiple sources,
+     * such as a `id_rsa.pub` file and an `RSA_PUBKEY` env var.
+     * The alias does not prevent directly reading a single underlying key.
+     * The alias is a distinct entity in the cache. Reading an alias will not use cached results from previous reads of specific keys.
+     * @param aliasKey The alias key to create.
+     * @param sourceKeys The source keys to alias.
      */
-    public write(key: string, value: CachedConfigEntity<T>) {
-        this.entityCache.set(key, value);
+    public alias(aliasKey: string, sourceKeys: string[]) {
+        this.aliases.set(aliasKey, sourceKeys);
     }
 
     /**
@@ -185,8 +202,7 @@ export class Technician<T = Buffer> {
      * @param sources   The config source(s) to edit. Sources are managed by reference, so the ConfigSource passed in
      *                  must be the same object passed in to addSource.
      *                  If a {source, priority} object was passed in, the only the source should be passed in to editSource.
-     * @param priority  If passing in a raw ConfigSource, the priority may be passed separately.
-     *                  When reading a value, the source with the highest priority will be used.
+     * @param priority  The new priority for the matching config source.
      */
     public editSource(sources: MetaConfigSource | MetaConfigSource[], priority: number) {
         // Handle singular params.
