@@ -43,7 +43,7 @@ export class Technician<T = Buffer> {
     public async read(key: string): Promise<T | undefined> {
 
         // Check cache. If cacheRespectsPriority is not enabled, return cached value automatically if it exists.
-        const cacheItem = this.entityCache.get(key);
+        const cacheItem = this.checkCache(key);
         if(cacheItem && !this.params?.cacheRespectsPriority) {
             return cacheItem.value;
         }
@@ -79,30 +79,27 @@ export class Technician<T = Buffer> {
                 if(interpreterResult === undefined) {
                     continue;
                 }
-                // The candidate is valid. Check priority.
-                // Update candidate if priority is higher than existing, or no existing candidate.
-                if(runningPriority !== undefined && knownSource.priority > runningPriority) {
-                    isNewResult = true;
-                    runningPriority = knownSource.priority;
-                    // Build result object if a raw result was returned.
-                    if(!this.isEntityWithParams(interpreterResult)) {
-                        interpreterResult = {
-                            value: interpreterResult
-                        };
-                    }
-                    // Calculate cache length. Entity > Source > Global
-                    interpreterResult.cacheFor = interpreterResult.cacheFor ?? knownSource.cacheFor ?? this.params?.defaultCacheLength;
-                    // Update result candidate
-                    resultCandidate = {
-                        key,
-                        data,
-                        value: interpreterResult.value,
-                        priority: knownSource.priority,
-                        source: knownSource.source,
-                        cacheFor: interpreterResult.cacheFor,
-                        cacheUntil: interpreterResult.cacheFor ? Date.now() + interpreterResult.cacheFor : Infinity
+                // The candidate is valid.
+                isNewResult = true;
+                runningPriority = knownSource.priority;
+                // Build result object if a raw result was returned.
+                if(!this.isEntityWithParams(interpreterResult)) {
+                    interpreterResult = {
+                        value: interpreterResult
                     };
                 }
+                // Calculate cache length. Entity > Source > Global
+                interpreterResult.cacheFor = interpreterResult.cacheFor ?? knownSource.cacheFor ?? this.params?.defaultCacheLength;
+                // Update result candidate
+                resultCandidate = {
+                    key,
+                    data,
+                    value: interpreterResult.value,
+                    priority: knownSource.priority,
+                    source: knownSource.source,
+                    cacheFor: interpreterResult.cacheFor,
+                    cacheUntil: interpreterResult.cacheFor ? Date.now() + interpreterResult.cacheFor : Infinity
+                };
             }
         }
 
@@ -176,7 +173,18 @@ export class Technician<T = Buffer> {
     }
 
     /**
+     * Returns all information on a known key, or undefined if the key is unknown.
+     * `describe()` does not read a key that has not yet been read.
+     * @param key The key to describe.
+     * @returns An object containing the key, its cached value, and all related config.
+     */
+    public describe(key: string): CachedConfigEntity<T> | undefined {
+        return this.entityCache.get(key);
+    }
+
+    /**
      * Adds ConfigSource(s) to Technician.
+     * If the ConfigSource already exists, this function may be used again to edit its config in place.
      * @param sources   The config source(s) to add. May be a ConfigSource object, an object containing a source and priority,
      *                  or an array of these. If passing an array of ConfigSources, the same priority will be used for each.
      *                  A Technician<Buffer> may also be used as a ConfigSource for a higher-level Technician instance.
@@ -185,35 +193,23 @@ export class Technician<T = Buffer> {
      *                  Default priority is 0.
      *                  This param is ignored if {source, priorirty} object(s) are passed.
      */
-    public addSource(sources: MetaConfigSource | MetaConfigSource[] | KnownConfigSource | KnownConfigSource[], priority?: number): void {
+    public addSource(sources: MetaConfigSource | KnownConfigSource | (MetaConfigSource | KnownConfigSource)[], priority?: number): void {
         // Handle singular params.
         if(!Array.isArray(sources)) {
             sources = [sources as any];
         }
         // Add sources.
-        for(const source of sources) {
-            this.knownSources.push(this.isSourceWithParams(source) ? source : {source, priority: priority ?? 0});
-        }
-    }
-
-    /**
-     * Edits the priority of ConfigSource(s) in Technician.
-     * @param sources   The config source(s) to edit. Sources are managed by reference, so the ConfigSource passed in
-     *                  must be the same object passed in to addSource.
-     *                  If a {source, priority} object was passed in, the only the source should be passed in to editSource.
-     * @param priority  The new priority for the matching config source.
-     */
-    public editSource(sources: MetaConfigSource | MetaConfigSource[], priority: number): void {
-        // Handle singular params.
-        if(!Array.isArray(sources)) {
-            sources = [sources];
-        }
-        // Re-prio matching sources.
-        this.knownSources.map(x => {
-            if((sources as MetaConfigSource[]).includes(x.source)) {
-                x.priority = priority;
+        for(let source of sources) {
+            // Wrap raw sources in objects
+            if(!this.isSourceWithParams(source)) {
+                source = {source, priority: priority ?? 0};
             }
-        });
+            // Remove the source if it already exists, to replace it with new config.
+            // Adding the same source multiple times could create odd behavior.
+            this.knownSources = this.knownSources.filter(x => x.source !== (source as KnownConfigSource).source);
+            // Add the source w/ new config.
+            this.knownSources.push(source);
+        }
     }
 
     /**
@@ -243,6 +239,27 @@ export class Technician<T = Buffer> {
         }
     }
 
+    /** 
+     * Reads a key from the cache, checking for validity.
+     * Invalid and/or expired entries are automatically removed from the cache.
+     * @param key The key.
+     * @returns The cached entity, or undefined if the cached result did not exist or was expired / invalid.
+     */
+    private checkCache(key: string): CachedConfigEntity<T> | undefined {
+        const cacheItem = this.entityCache.get(key);
+        // Return nothing if nothing cached.
+        if(!cacheItem) {
+            return undefined;
+        }
+        // If cache is expired, remove it and return nothing.
+        if(Date.now() > cacheItem.cacheUntil) {
+            this.entityCache.delete(key);
+            return undefined;
+        }
+        // Return valid cache item.
+        return cacheItem;
+    }
+
     /**
      * Checks if the return of an interpreter function is a raw value or an entity object with config.
      * @param entity The interpreter return value.
@@ -256,7 +273,7 @@ export class Technician<T = Buffer> {
      * @param source The source object.
      */
     private isSourceWithParams(source: MetaConfigSource | KnownConfigSource): source is KnownConfigSource {
-        return Object.keys(source).includes('source') && Object.keys(source).includes('number');
+        return Object.keys(source).includes('source') && Object.keys(source).includes('priority');
     }
 
 }

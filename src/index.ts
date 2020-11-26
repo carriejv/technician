@@ -15,6 +15,10 @@ import {
 } from './interpreters/default-interpreters-sync';
 
 import {
+    ConfigNotFoundError
+} from './error/config-not-found-error';
+
+import {
     ConfigSource,
     ConfigSourceSync,
     Interpreter,
@@ -26,6 +30,7 @@ export {
     TechnicianSync,
     DefaultInterpreters,
     DefaultInterpretersSync,
+    ConfigNotFoundError,
     ConfigSource,
     ConfigSourceSync,
     Interpreter,

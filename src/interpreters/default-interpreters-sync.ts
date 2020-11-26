@@ -17,7 +17,7 @@ export class DefaultInterpretersSync {
      * @param encoding The text encoding to use. Default `utf8`.
      */
     public static asText(encoding: SupportedEncoding = 'utf8'): InterpreterSync<string | undefined> {
-        return (rawEntity: RawConfigEntity) => rawEntity.data?.toString(encoding);
+        return (rawEntity: RawConfigEntity) => rawEntity.data.toString(encoding);
     }
 
     /** 
@@ -26,10 +26,7 @@ export class DefaultInterpretersSync {
      */
     public static asJSON(encoding: SupportedEncoding = 'utf8'): InterpreterSync<JSON | undefined> {
         return (rawEntity: RawConfigEntity) => {
-            const text = rawEntity.data?.toString(encoding);
-            if(!text) {
-                return undefined;
-            }
+            const text = rawEntity.data.toString(encoding);
             try {
                 return JSON.parse(text);
             }

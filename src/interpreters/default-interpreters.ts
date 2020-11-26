@@ -26,10 +26,7 @@ export class DefaultInterpreters {
      */
     public static asJSON(encoding: SupportedEncoding = 'utf8'): Interpreter<JSON | undefined> {
         return async (rawEntity: RawConfigEntity) => {
-            const text = rawEntity.data?.toString(encoding);
-            if(!text) {
-                return undefined;
-            }
+            const text = rawEntity.data.toString(encoding);
             try {
                 return JSON.parse(text);
             }

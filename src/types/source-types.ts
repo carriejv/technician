@@ -10,7 +10,7 @@ export interface ConfigSource {
      * @param key The key of the secret to read.
      * @returns A Buffer containing the data associated with the key, or undefined it does not exist.
      */
-    read(key: string): Promise<Buffer> | undefined;
+    read(key: string): Promise<Buffer | undefined>;
 
     /**
      * Reads all config entities asynchronously, returning an object keyed by config key with data Buffers containing their contents.
@@ -18,7 +18,7 @@ export interface ConfigSource {
      * @param key The key of the secret to read.
      * @returns An object of key/value pairs, where the values are Buffers containing the data for each key.
      */
-    readAll(): Promise<{[key: string]: Buffer}> | undefined;
+    readAll(): Promise<{[key: string]: Buffer | undefined}>;
 
     /** 
      * Lists all keys known to the config source.
@@ -44,7 +44,7 @@ export interface ConfigSourceSync {
      * @param key The key of the secret to read.
      * @returns An object of key/value pairs, where the values are Buffers containing the data for each key.
      */
-    readAllSync(): {[key: string]: Buffer} | undefined;
+    readAllSync(): {[key: string]: Buffer | undefined};
 
     /** 
      * Lists all keys known to the config source.

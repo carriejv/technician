@@ -10,17 +10,20 @@ export class TestSource implements ConfigSource, ConfigSourceSync {
      * @constructor TestSource
      */
     constructor(
-        private value: Buffer = Buffer.from('value', 'utf8'),
-        private keys: string[] = ['a', 'b', 'c']) {}
+        private value: Buffer | undefined,
+        private keys: string[]) {}
 
     /** @see {@link ConfigSource#read} */
-    public async read(): Promise<Buffer> {
-        return this.value;
+    public async read(key: string): Promise<Buffer | undefined> {
+        if(this.keys.includes(key)) {
+            return this.value;
+        }
+        return undefined;
     }
 
     /** @see {@link ConfigSource#readAll} */
-    public async readAll(): Promise<{[key: string]: Buffer}> {
-        const obj = {};
+    public async readAll(): Promise<{[key: string]: Buffer | undefined}> {
+        const obj: {[key: string]: Buffer | undefined} = {};
         for(const key of this.keys) {
             obj[key] = this.value;
         }
@@ -33,13 +36,16 @@ export class TestSource implements ConfigSource, ConfigSourceSync {
     }
 
     /** @see {@link ConfigSourceSync#readSync} */
-    public readSync(): Buffer {
-        return this.value;
+    public readSync(key: string): Buffer | undefined {
+        if(this.keys.includes(key)) {
+            return this.value;
+        }
+        return undefined;
     }
 
     /** @see {@link ConfigSourceSync#readAllSync} */
-    public readAllSync(): {[key: string]: Buffer} {
-        const obj = {};
+    public readAllSync(): {[key: string]: Buffer | undefined} {
+        const obj: {[key: string]: Buffer | undefined} = {};
         for(const key of this.keys) {
             obj[key] = this.value;
         }

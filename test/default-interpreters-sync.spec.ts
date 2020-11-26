@@ -40,4 +40,16 @@ describe('DefaultInterpretersSync', () => {
 
     });
 
+    describe('- Negative', () => {
+
+        describe('#asJSON', () => {
+
+            it('should return undefined if the data is invalid JSON', async () => {
+                expect(DefaultInterpretersSync.asJSON('utf8')(rawString)).to.equal(undefined);
+            });
+
+        });
+
+    });
+
 });
