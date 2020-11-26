@@ -1,11 +1,11 @@
-import { ConfigSource } from "./source-types";
+import { MetaConfigSource, MetaConfigSourceSync } from "./source-types";
 
 /** Defines info about an entity being read, pre-interpretation. */
 export interface RawConfigEntity {
     /** The key of the entity. */
     key: string;
     /** The source from which the config value was read. */
-    source: ConfigSource
+    source: MetaConfigSource | MetaConfigSourceSync
     /** The data contents of the entity. */
     data: Buffer;
 }
@@ -17,7 +17,7 @@ export interface RawConfigEntity {
 export interface ConfigEntity<T> {
     /** The intepreted value to store and return. */
     value: T;
-    /** Timestamp for cache expirey. If unset, caches forever. If negative, does not cache. */
+    /** Timestamp for cache expirey. If unset, caches forever. If negative, does not cache. This value supercedes global and source-specific cache config. */
     cacheFor?: number;
 }
 

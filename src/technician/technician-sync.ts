@@ -1,27 +1,46 @@
-import { DefaultInterpreters } from "..";
+import { DefaultInterpretersSync } from "../interpreters/default-interpreters-sync";
 import { ConfigNotFoundError } from "../error/config-not-found-error";
 import { CachedConfigEntity, ConfigEntity } from "../types/entity-types";
 import { TechnicianParams } from "../types/param-types";
-import { Interpreter, KnownConfigSource, MetaConfigSource } from "../types/source-types";
+import { InterpreterSync, KnownConfigSourceSync, MetaConfigSourceSync } from "../types/source-types";
 
 /** 
  * Technician manages a set of config sources,
  * allowing retrieval of config from a central service
  * and providing caching and overriding capability.
+ * Synchronous edition.
  */
-export class Technician<T = Buffer> {
-
+export class TechnicianSync<T = Buffer> {
+    
     /** Internal entity cache. */
     private entityCache: Map<string, CachedConfigEntity<T>> = new Map();
 
-    /** Array of known async entity sources. */
-    private knownSources: KnownConfigSource[] = [];
+    /** Array of known sync entity sources. */
+    private knownSources: KnownConfigSourceSync[] = [];
 
     /** Key alias map. */
     private aliases: Map<string, string[]> = new Map();
 
+    /** 
+     * Compatability layer for nesting TechnicianSync<Buffer> as a ConfigSourceSync.
+     * This allows access via the normal Technician API, and the xSync API used internally by async/sync hybrid sources.
+     */
+    public readSync = this.read;
+
+    /** 
+     * Compatability layer for nesting TechnicianSync<Buffer> as a ConfigSourceSync.
+     * This allows access via the normal Technician API, and the xSync API used internally by async/sync hybrid sources.
+     */
+    public readAllSync = this.readAll;
+
+    /** 
+     * Compatability layer for nesting TechnicianSync<Buffer> as a ConfigSourceSync.
+     * This allows access via the normal Technician API, and the xSync API used internally by async/sync hybrid sources.
+     */
+    public listSync = this.list;
+
     /**
-     * Builds a new Technician instance.
+     * Builds a new TechnicianSync instance.
      * @param interpreter   The interpreter function to use when parsing config values.
                             This function will be called on a raw buffer after it is read. Its return will be used & cached as the true config value.
                             The return type of the interpreter function will be the type used for all values accessed by read(), etc.
@@ -29,19 +48,18 @@ export class Technician<T = Buffer> {
                             Interpreters may be used to validatey, deserialize, decrypt, and/or do any other work necessary to parse the raw buffer into type T.
                             If omitted, T is assumed to be Buffer and the secret data is returned as a raw Buffer.
      * @param params Params object. @see {@link TechnicianParams}.
-     * @constructor Technician
+     * @constructor TechnicianSync
      */
     public constructor(
-        private interpreter: Interpreter<T> = DefaultInterpreters.asBuffer() as any, // As any cast required because <T = Buffer> default is not properly recognized.
+        private interpreter: InterpreterSync<T> = DefaultInterpretersSync.asBuffer() as any, // As any cast required because <T = Buffer> default is not properly recognized.
         private params?: TechnicianParams) {}
 
     /**
-     * Reads a single config value by key asynchronously, optionally parsing it into type T using an `interpreter` function.
+     * Reads a single config value by key synchronously, optionally parsing it into type T using an `interpreter` function.
      * @param key   The key of the config value to read.
      * @returns     A config value of type T or undefined if the key has no value.
      */
-    public async read(key: string): Promise<T | undefined> {
-
+    public read(key: string): T | undefined {
         // Check cache. If cacheRespectsPriority is not enabled, return cached value automatically if it exists.
         const cacheItem = this.checkCache(key);
         if(cacheItem && !this.params?.cacheRespectsPriority) {
@@ -60,7 +78,6 @@ export class Technician<T = Buffer> {
         }
 
         // Read in the target config data from potential sources.
-        // If the key is an alias, all potential subkeys will be checked.
         let runningPriority = cacheItem?.priority;
         let isNewResult;
         for(const sourceKey of sourceKeys) {
@@ -69,12 +86,12 @@ export class Technician<T = Buffer> {
                 if(runningPriority !== undefined && runningPriority > knownSource.priority) {
                     continue;
                 }
-                const data = await knownSource.source.read(sourceKey);
+                const data = knownSource.source.readSync(sourceKey);
                 // Skip any data blocks that do not exist.
                 if(!data) {
                     continue;
                 }
-                let interpreterResult = await this.interpreter({key, data, source: knownSource.source});
+                let interpreterResult = this.interpreter({key, data, source: knownSource.source});
                 // If the interpreter returns undefined, it is assumed the input data was invalid and the source is skipped.
                 if(interpreterResult === undefined) {
                     continue;
@@ -113,14 +130,14 @@ export class Technician<T = Buffer> {
     }
 
     /**
-     * Reads a single config value by key asynchronously, optionally parsing it into type T using an `interpreter` function.
+     * Reads a single config value by key synchronously, optionally parsing it into type T using an `interpreter` function.
      * Throws a `ConfigNotFoundError` error if the value is missing.
-     * @param key   The key of the config value to read.
-     * @throws      `ConfigNotFoundError` error if the value is missing.
-     * @returns     A config value of type T.
+     * @param key           The key of the config value to read.
+     * @throws              A `ConfigNotFoundError` error if the value is missing.
+     * @returns             A config value of type T.
      */
-    public async require(key: string): Promise<T> {
-        const value = await this.read(key);
+    public require(key: string): T {
+        const value = this.read(key);
         if(value === undefined) {
             throw new ConfigNotFoundError(`Key [${key}] not found in any configured source.`);
         }
@@ -128,16 +145,16 @@ export class Technician<T = Buffer> {
     }
 
     /**
-     * Reads a all config values asynchronously, optionally parsing them into type(s) T using `interpreter` function(s).
+     * Reads a all config values synchronously, optionally parsing them into type(s) T using `interpreter` function(s).
      * Depending on the type and quantity of sources, this may be a very expensive operation. Use with caution.
      * If a key exists with no value, the key exists in at least one source but has no valid associated data.
      * @returns An object of key/value pairs, with values of type T.
      */
-    public async readAll(): Promise<{[key: string]: T | undefined}> {
+    public readAll(): {[key: string]: T | undefined} {
         // Read all values present in list()
         const result: {[key: string]: T | undefined} = {};
-        for(const key of await this.list()) {
-            result[key] = await this.read(key);
+        for(const key of this.list()) {
+            result[key] = this.read(key);
         }
         return result;
     }
@@ -146,11 +163,11 @@ export class Technician<T = Buffer> {
      * Lists all known config keys.
      * @returns An array of all known config keys contained in all added sources.
      */
-    public async list(): Promise<string[]> {
+    public list(): string[] {
         // List all keys for all sources. Start with aliases created in Technician itself.
         let keys: string[] = Array.from(this.aliases.keys());
         for(const knownSource of this.knownSources) {
-            keys = keys.concat(await knownSource.source.list())
+            keys = keys.concat(knownSource.source.listSync())
         }
 
         // Dedupe keys via Set.
@@ -193,7 +210,7 @@ export class Technician<T = Buffer> {
      *                  Default priority is 0.
      *                  This param is ignored if {source, priorirty} object(s) are passed.
      */
-    public addSource(sources: MetaConfigSource | KnownConfigSource | (MetaConfigSource | KnownConfigSource)[], priority?: number): void {
+    public addSource(sources: MetaConfigSourceSync | KnownConfigSourceSync | (MetaConfigSourceSync | KnownConfigSourceSync)[], priority?: number): void {
         // Handle singular params.
         if(!Array.isArray(sources)) {
             sources = [sources as any];
@@ -206,7 +223,7 @@ export class Technician<T = Buffer> {
             }
             // Remove the source if it already exists, to replace it with new config.
             // Adding the same source multiple times could create odd behavior.
-            this.knownSources = this.knownSources.filter(x => x.source !== (source as KnownConfigSource).source);
+            this.knownSources = this.knownSources.filter(x => x.source !== (source as KnownConfigSourceSync).source);
             // Add the source w/ new config.
             this.knownSources.push(source);
         }
@@ -218,13 +235,13 @@ export class Technician<T = Buffer> {
      *                  must be the same object passed in to addSource.
      *                  If a {source, priority} object was passed in, the only the source should be passed in to deleteSource.
      */
-    public deleteSource(sources: MetaConfigSource | MetaConfigSource[]): void {
+    public deleteSource(sources: MetaConfigSourceSync | MetaConfigSourceSync[]): void {
         // Handle singular params.
         if(!Array.isArray(sources)) {
             sources = [sources];
         }
         // Filter source list.
-        this.knownSources = this.knownSources.filter(x => !(sources as MetaConfigSource[]).includes(x.source));
+        this.knownSources = this.knownSources.filter(x => !(sources as MetaConfigSourceSync[]).includes(x.source));
     }
 
     /** 
@@ -272,7 +289,7 @@ export class Technician<T = Buffer> {
      * Checks if a ConfigSource is a raw source object or a KnownConfigSource object with config.
      * @param source The source object.
      */
-    private isSourceWithParams(source: MetaConfigSource | KnownConfigSource): source is KnownConfigSource {
+    private isSourceWithParams(source: MetaConfigSourceSync | KnownConfigSourceSync): source is KnownConfigSourceSync {
         return Object.keys(source).includes('source') && Object.keys(source).includes('priority');
     }
 

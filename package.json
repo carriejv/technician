@@ -1,7 +1,7 @@
 {
 	"name": "technician",
-	"version": "1.0.0",
-	"description": "Access, manage, cache, and export all your config from a single service. Supports Typescript w/ type inferrance for config.",
+	"version": "0.1.0",
+	"description": "Access, manage, cache, and export all your config from a single service. Supports Typescript w/ typed config value output.",
 	"keywords": [
 		"config",
 		"configuration",
@@ -23,9 +23,10 @@
 	"scripts": {
 		"start": "node index.js",
 		"test": "npm run lint && npm run testOnly",
-		"testOnly": "nyc mocha -r ts-node/register ./test/**/*.spec.ts",
+		"testOnly": "nyc --reporter=html --reporter=text mocha -r ts-node/register ./test/**/*.spec.ts",
 		"lint": "eslint . --ext .ts",
 		"build": "tsc --project ./tsconfig.json",
+		"docs": "typedoc --out docs --theme ./node_modules/typedoc-dark-theme/bin/default/ src && echo \"Docs generated at ./docs/index.html\"",
 		"prepublishOnly": "npm run build"
 	},
 	"repository": {
@@ -53,8 +54,9 @@
 		"eslint": "^7.13.0",
 		"mocha": "^8.2.1",
 		"nyc": "^15.1.0",
-		"rewiremock": "^3.14.3",
 		"ts-node": "^9.0.0",
+		"typedoc": "^0.19.2",
+		"typedoc-dark-theme": "0.0.11",
 		"typescript": "^4.0.5"
 	}
 }

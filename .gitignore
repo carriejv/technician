@@ -62,3 +62,6 @@ typings/
 
 # compiled typescript
 dist/
+
+# typedoc docs
+docs/
