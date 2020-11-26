@@ -21,7 +21,7 @@ describe('Technician', () => {
 
         describe('#read', () => {
 
-            it('should read a single config value using the default interpreter.', async() => {
+            it('should read a single config value using the default interpreter.', async () => {
                 // Build and configure a Technician instance.
                 const tech = new Technician();
                 tech.addSource(TEST_SOURCE_1);
@@ -33,7 +33,7 @@ describe('Technician', () => {
                 expect(result).to.deep.equal(Buffer.from(VALUE_1));
             });
 
-            it('should read a single config value using a custom interpreter.', async() => {
+            it('should read a single config value using a custom interpreter.', async () => {
                 // Build and configure a Technician instance.
                 const tech = new Technician(DefaultInterpreters.asText());
                 tech.addSource(TEST_SOURCE_1);
@@ -45,7 +45,7 @@ describe('Technician', () => {
                 expect(result).to.equal(VALUE_1);
             });
 
-            it('should read a single config value when multiple sources are present.', async() => {
+            it('should read a single config value when multiple sources are present.', async () => {
                 // Build and configure a Technician instance.
                 const tech = new Technician(DefaultInterpreters.asText());
                 tech.addSource([TEST_SOURCE_BAD, TEST_SOURCE_1, TEST_SOURCE_2]);
@@ -57,7 +57,7 @@ describe('Technician', () => {
                 expect(result).to.equal(VALUE_1);
             });
 
-            it('should read a single config value when multiple sources are present and ignore those which cannot be interpreted.', async() => {
+            it('should read a single config value when multiple sources are present and ignore those which cannot be interpreted.', async () => {
                 // Build and configure a Technician instance.
                 const tech = new Technician(async entity => {
                     if(entity.source !== TEST_SOURCE_2) {
@@ -74,7 +74,7 @@ describe('Technician', () => {
                 expect(result).to.equal(VALUE_2);
             });
 
-            it('should read the highest priority config value available when a key is present in multiple sources.', async() => {
+            it('should read the highest priority config value available when a key is present in multiple sources.', async () => {
                 // Build and configure a Technician instance.
                 const tech = new Technician(DefaultInterpreters.asText());
                 tech.addSource([{source: TEST_SOURCE_1, priority: 1}, {source: TEST_SOURCE_2, priority: 2}]);
@@ -86,7 +86,7 @@ describe('Technician', () => {
                 expect(result).to.equal(VALUE_2);
             });
 
-            it('should read a single config value from the cache without cacheRespectsPriority.', async() => {
+            it('should read a single config value from the cache without cacheRespectsPriority.', async () => {
                 // Build and configure a Technician instance.
                 const tech = new Technician(DefaultInterpreters.asText());
                 tech.addSource(TEST_SOURCE_1);
@@ -108,7 +108,7 @@ describe('Technician', () => {
                 expect(result).to.equal(VALUE_1);
             });
 
-            it('should read from a higher-priority source instead of the cache with cacheRespectsPriority.', async() => {
+            it('should read from a higher-priority source instead of the cache with cacheRespectsPriority.', async () => {
                 // Build and configure a Technician instance.
                 const tech = new Technician(DefaultInterpreters.asText(), {cacheRespectsPriority: true});
                 tech.addSource(TEST_SOURCE_1, 99);
@@ -130,7 +130,7 @@ describe('Technician', () => {
                 expect(result).to.equal(VALUE_1);
             });
 
-            it('should return a cached value instead of reading from a lower-priority source instead of the cache with cacheRespectsPriority.', async() => {
+            it('should return a cached value instead of reading from a lower-priority source instead of the cache with cacheRespectsPriority.', async () => {
                 // Build and configure a Technician instance.
                 const tech = new Technician(DefaultInterpreters.asText(), {cacheRespectsPriority: true});
                 tech.addSource(TEST_SOURCE_1, -99);
@@ -152,7 +152,7 @@ describe('Technician', () => {
                 expect(result).to.equal(VALUE_BAD);
             });
 
-            it('should read from source if a cached value is expired.', async() => {
+            it('should read from source if a cached value is expired.', async () => {
                 // Build and configure a Technician instance.
                 const tech = new Technician(DefaultInterpreters.asText());
                 tech.addSource(TEST_SOURCE_1);
@@ -174,7 +174,7 @@ describe('Technician', () => {
                 expect(result).to.equal(VALUE_1);
             });
 
-            it('should cache forever by default if no cache config exists.', async() => {
+            it('should cache forever by default if no cache config exists.', async () => {
                 // Build and configure a Technician instance.
                 const tech = new Technician(DefaultInterpreters.asText());
                 tech.addSource(TEST_SOURCE_1);
@@ -189,7 +189,7 @@ describe('Technician', () => {
                 expect(result?.cacheUntil).to.equal(Infinity);
             });
 
-            it('should cache a read value using the Technician global cache setting.', async() => {
+            it('should cache a read value using the Technician global cache setting.', async () => {
                 // Build and configure a Technician instance.
                 const tech = new Technician(DefaultInterpreters.asText(), {defaultCacheLength: 1000});
                 tech.addSource(TEST_SOURCE_1);
@@ -204,7 +204,7 @@ describe('Technician', () => {
                 expect(result?.cacheFor).to.equal(1000);
             });
 
-            it('should cache a read value using the source\'s cache length if it is defined.', async() => {
+            it('should cache a read value using the source\'s cache length if it is defined.', async () => {
                 // Build and configure a Technician instance.
                 const tech = new Technician(DefaultInterpreters.asText());
                 tech.addSource({source: TEST_SOURCE_1, priority: 0, cacheFor: 1000});
@@ -219,7 +219,7 @@ describe('Technician', () => {
                 expect(result?.cacheFor).to.equal(1000);
             });
 
-            it('should cache a read value using the interpreter\'s cacheFor return if defined.', async() => {
+            it('should cache a read value using the interpreter\'s cacheFor return if defined.', async () => {
                 // Build and configure a Technician instance.
                 const tech = new Technician(async entity => {
                     return {
@@ -239,7 +239,7 @@ describe('Technician', () => {
                 expect(result?.cacheFor).to.equal(1000);
             });
 
-            it('should read a single config value from a nested Technician instance.', async() => {
+            it('should read a single config value from a nested Technician instance.', async () => {
                 // Build and configure a Technician instance.
                 const tech = new Technician(DefaultInterpreters.asText());
                 const internalTech = new Technician();
@@ -253,7 +253,7 @@ describe('Technician', () => {
                 expect(result).to.equal(VALUE_1);
             });
 
-            it('should read the highest priority config value available for an alias with multiple backend keys.', async() => {
+            it('should read the highest priority config value available for an alias with multiple backend keys.', async () => {
                 // Build and configure a Technician instance.
                 const tech = new Technician(DefaultInterpreters.asText());
                 tech.alias('alias', ['1only', '2only']);
@@ -270,7 +270,7 @@ describe('Technician', () => {
 
         describe('#require', () => {
 
-            it('should read a single config value using the default interpreter and return it if it exists.', async() => {
+            it('should read a single config value using the default interpreter and return it if it exists.', async () => {
                 // Build and configure a Technician instance.
                 const tech = new Technician();
                 tech.addSource(TEST_SOURCE_1);
@@ -286,7 +286,7 @@ describe('Technician', () => {
 
         describe('#readAll', () => {
 
-            it('should read config for all keys returned by list() of configured sources.', async() => {
+            it('should read config for all keys returned by list() of configured sources.', async () => {
                 // Build and configure a Technician instance.
                 const tech = new Technician();
                 tech.addSource([{source: TEST_SOURCE_1, priority: 1}, {source: TEST_SOURCE_2, priority: 2}]);
@@ -304,7 +304,7 @@ describe('Technician', () => {
 
         describe('#list', () => {
 
-            it('should list all known keys from all configured sources.', async() => {
+            it('should list all known keys from all configured sources.', async () => {
                 // Build and configure a Technician instance.
                 const tech = new Technician();
                 tech.addSource([TEST_SOURCE_1, TEST_SOURCE_2]);
@@ -318,7 +318,7 @@ describe('Technician', () => {
                 expect(result).to.include('shared');
             });
 
-            it('should list all known keys from all configured sources, including aliases.', async() => {
+            it('should list all known keys from all configured sources, including aliases.', async () => {
                 // Build and configure a Technician instance.
                 const tech = new Technician();
                 tech.alias('alias', []);
@@ -338,7 +338,7 @@ describe('Technician', () => {
 
         describe('#alias', () => {
 
-            it('should create an alias.', async() => {
+            it('should create an alias.', async () => {
                 // Build and configure a Technician instance.
                 const tech = new Technician();
                 tech.alias('alias', ['key1', 'key2']);
@@ -351,7 +351,7 @@ describe('Technician', () => {
 
         describe('#describe', () => {
 
-            it('should return all known config for a cached value.', async() => {
+            it('should return all known config for a cached value.', async () => {
                 // Build and configure a Technician instance.
                 const tech = new Technician(DefaultInterpreters.asText());
                 tech.addSource({source: TEST_SOURCE_1, priority: 1, cacheFor: 1000});
@@ -374,9 +374,32 @@ describe('Technician', () => {
 
         });
 
+        describe('#export', () => {
+
+            it('should return an object map of all known config values.', async () => {
+                // Build and configure a Technician instance.
+                const tech = new Technician(DefaultInterpreters.asText());
+                tech.addSource([{source: TEST_SOURCE_1, priority: 1}, {source: TEST_SOURCE_2, priority: 2}]);
+
+                // Read some values
+                await tech.read('1only');
+                await tech.read('2only');
+
+                // Test
+                const result = tech.export();
+
+                // Assertions
+                expect(result['1only']).to.equal(VALUE_1);
+                expect(result['2only']).to.equal(VALUE_2);
+                // Export should be unaware of unaccessed keys.
+                expect(result['shared']).to.equal(undefined);
+            });
+
+        });
+
         describe('#addSource', () => {
 
-            it('should add a config source with default priority.', async() => {
+            it('should add a config source with default priority.', async () => {
                 // Build and configure a Technician instance.
                 const tech = new Technician();
                 tech.addSource(TEST_SOURCE_1);
@@ -386,7 +409,7 @@ describe('Technician', () => {
                 expect((tech as any).knownSources.find((x: KnownConfigSource) => x.source === TEST_SOURCE_1).priority).to.equal(0);
             });
 
-            it('should add a config source with custom config.', async() => {
+            it('should add a config source with custom config.', async () => {
                 // Build and configure a Technician instance.
                 const tech = new Technician();
                 tech.addSource({source: TEST_SOURCE_1, priority: 1, cacheFor: 1000});
@@ -397,7 +420,7 @@ describe('Technician', () => {
                 expect((tech as any).knownSources.find((x: KnownConfigSource) => x.source === TEST_SOURCE_1).cacheFor).to.equal(1000);
             });
 
-            it('should add a Technician instance as a config source.', async() => {
+            it('should add a Technician instance as a config source.', async () => {
                 // Build and configure a Technician instance.
                 const tech = new Technician();
                 const internalTech = new Technician();
@@ -408,7 +431,7 @@ describe('Technician', () => {
                 expect((tech as any).knownSources.find((x: KnownConfigSource) => x.source === internalTech).priority).to.equal(0);
             });
 
-            it('should add an array of config sources.', async() => {
+            it('should add an array of config sources.', async () => {
                 // Build and configure a Technician instance.
                 const tech = new Technician();
                 const internalTech = new Technician();
@@ -428,7 +451,7 @@ describe('Technician', () => {
             });
 
 
-            it('should edit a config source, changing priority and cache config.', async() => {
+            it('should edit a config source, changing priority and cache config.', async () => {
                 // Build and configure a Technician instance.
                 const tech = new Technician();
                 tech.addSource(TEST_SOURCE_1);
@@ -446,7 +469,7 @@ describe('Technician', () => {
 
         describe('#deleteSource', () => {
 
-            it('should delete a config source', async() => {
+            it('should delete a config source', async () => {
                 // Build and configure a Technician instance.
                 const tech = new Technician();
                 tech.addSource([TEST_SOURCE_1, TEST_SOURCE_2]);
@@ -457,7 +480,7 @@ describe('Technician', () => {
                 expect((tech as any).knownSources.filter((x: KnownConfigSource) => x.source === TEST_SOURCE_2).length).to.equal(1);
             });
 
-            it('should delete an array of config sources', async() => {
+            it('should delete an array of config sources', async () => {
                 // Build and configure a Technician instance.
                 const tech = new Technician();
                 tech.addSource([TEST_SOURCE_1, TEST_SOURCE_2, TEST_SOURCE_EMPTY]);
@@ -473,7 +496,7 @@ describe('Technician', () => {
 
         describe('#clearCache', () => {
 
-            it('should clear the cache', async() => {
+            it('should clear the cache', async () => {
                 // Build and configure a Technician instance.
                 const tech = new Technician(DefaultInterpreters.asText());
                 tech.addSource(TEST_SOURCE_1);
@@ -495,7 +518,7 @@ describe('Technician', () => {
                 expect(await tech.read('1only')).to.equal(VALUE_1);
             });
 
-            it('should clear a specific key from the cache', async() => {
+            it('should clear a specific key from the cache', async () => {
                 // Build and configure a Technician instance.
                 const tech = new Technician(DefaultInterpreters.asText());
                 tech.addSource(TEST_SOURCE_1);
@@ -534,7 +557,7 @@ describe('Technician', () => {
 
         describe('#read', () => {
 
-            it('should return undefined if a config value does not exist.', async() => {
+            it('should return undefined if a config value does not exist.', async () => {
                 // Build and configure a Technician instance.
                 const tech = new Technician();
                 tech.addSource(TEST_SOURCE_BAD);
@@ -550,7 +573,7 @@ describe('Technician', () => {
 
         describe('#require', () => {
 
-            it('should throw a ConfigNotFoundError if it a config value does not exist.', async() => {
+            it('should throw a ConfigNotFoundError if it a config value does not exist.', async () => {
                 // Build and configure a Technician instance.
                 const tech = new Technician();
                 tech.addSource(TEST_SOURCE_BAD);
@@ -570,7 +593,7 @@ describe('Technician', () => {
 
         describe('#readAll', () => {
 
-            it('should return an empty object if no valid config values exist.', async() => {
+            it('should return an empty object if no valid config values exist.', async () => {
                 // Build and configure a Technician instance.
                 const tech = new Technician();
                 tech.addSource(TEST_SOURCE_EMPTY);
@@ -586,7 +609,7 @@ describe('Technician', () => {
 
         describe('#list', () => {
 
-            it('should return an empty array if no config keys exist.', async() => {
+            it('should return an empty array if no config keys exist.', async () => {
                 // Build and configure a Technician instance.
                 const tech = new Technician();
 
@@ -601,7 +624,7 @@ describe('Technician', () => {
 
         describe('#describe', () => {
 
-            it('should return undefined if a config value does not exist.', async() => {
+            it('should return undefined if a config value does not exist.', async () => {
                 // Build and configure a Technician instance.
                 const tech = new Technician();
                 tech.addSource(TEST_SOURCE_BAD);

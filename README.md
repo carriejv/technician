@@ -88,7 +88,7 @@ const technician = new Technician(DefaultInterperters.asBuffer(), {
     defaultCacheLength: 1000 * 60 * 60;
 });
 const envSource = new EnvConfigSource();
-const filesystemSource = new FSConfigSource('~/.ssh/*');
+const filesystemSource = new FSConfigSource('/etc/ssl/certs');
 
 // Sources with higher priority will be used over those with lower priority.
 // By default, sources have a priority of 0 and cache forever.
@@ -101,18 +101,30 @@ technician.addSource([
     filesystemSource // Just use the default config for FS.
 ]);
 
-technician.alias('rsa_pubkey', ['RSA_PUB_KEY', 'id_rsa.pub']);
+// Create an alias that links both config sources to a single key.
+technician.alias('ssl_cert', ['SSL_CERT', 'mysite.crt']);
 
-// Now, this will return the filesystem value and cache it forever --
-// unless RSA_PUB_KEY is set, overriding it and disabling caching.
-const value = await technician.read('rsa_pubkey');
+// This alias will return the filesystem value and cache it for an hour --
+// unless SSL_CERT is set, which overrides it and disables caching.
+const value = await technician.read('ssl_cert');
 ```
 
 ## Config Sources
 
 Config sources are the heart of Technician. Technician is built to be fully modular, and provides no functionality out of the box unless at least one config source is installed and configured.
 
-Technician has two official sources, \[Link to FS and Env\]. Technician instances can also be used as ConfigSources for other instances of Technician in complex setups.
+Official Technician config sources can be found in the [@technician](https://www.npmjs.com/org/technician) org on NPM. Common starter sources are listed below:
+
+* `EnvConfigSource` - Reads environment variables into Technician.
+
+    [![Technician](https://img.shields.io/npm/v/@technician/env-config-source?label=@technician/env-config-source)](https://www.npmjs.com/package/@technician/env-config-source)
+
+* `FSConfigSource` - Reads directories of config files. It also works with docker & kubernetes secrets.
+
+    [![Technician](https://img.shields.io/npm/v/@technician/fs-config-source?label=@technician/fs-config-source)](https://www.npmjs.com/package/@technician/fs-config-source)
+
+
+Technician instances can also be used as ConfigSources for other instances of Technician in complex setups.
 
 However, Technician is designed to be easily extensible -- build your own source by implementing the `ConfigSource` interface, extend an existing config source, or use community-made sources!
 
@@ -158,10 +170,6 @@ const technician = new Technician(async configData => {
 
 ## Utility Functions
 
-### ClearCache
-
-`technician.clearCache()` will wipe the entire cache. `technician.clearCache(key)` can also be used to delete only a specific entry.
-
 ### List
 
 `technician.list()` returns a list of all available keys, including aliases.
@@ -169,6 +177,14 @@ const technician = new Technician(async configData => {
 ### Describe
 
 `technician.describe(key)` can be used to return all information on a previously-read key for debugging, including its cache state and raw pre-interpretation buffer.
+
+### Export
+
+`technician.export()` returns all known config as a `{key: value}` object. Export, unlike `readAll()`, does not read new config -- it provides a method to look at the exact state of Technician based on prior reads.
+
+### ClearCache
+
+`technician.clearCache()` will wipe the entire cache. `technician.clearCache(key)` can also be used to delete only a specific entry.
 
 ### Editing Existing Sources
 

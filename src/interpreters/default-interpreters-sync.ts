@@ -35,4 +35,21 @@ export class DefaultInterpretersSync {
             }
         };
     }
+
+    /** 
+     * Returns a JSON object as the entity contents or a string if the value exists but is not valid JSON.
+     * This process is not as efficient as using more finely-tailored interpreters, but is provided for convenience.
+     * @param encoding The text encoding to use. Default `utf8`.
+     */
+    public static asTextOrJSON(encoding: SupportedEncoding = 'utf8'): InterpreterSync<JSON | string> {
+        return (rawEntity: RawConfigEntity) => {
+            const text = rawEntity.data.toString(encoding);
+            try {
+                return JSON.parse(text);
+            }
+            catch(err) {
+                return text
+            }
+        };
+    }
 }

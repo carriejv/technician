@@ -38,6 +38,20 @@ describe('DefaultInterpreters', () => {
             });
         });
 
+        describe('#asTextOrJSON', () => {
+            it('should return an interpreter', async () => {
+                expect(DefaultInterpreters.asTextOrJSON()).to.not.throw;
+            });
+    
+            it('should return a json object as the interpreted value', async () => {
+                expect(await DefaultInterpreters.asTextOrJSON('utf8')(rawJSON)).to.deep.equal({this: 'is', some: 'json'});
+            });
+
+            it('should return a string if the value is not valid JSON', async () => {
+                expect(await DefaultInterpreters.asTextOrJSON('utf8')(rawString)).to.deep.equal('a string');
+            });
+        });
+
     });
 
     describe('- Negative', () => {
