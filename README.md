@@ -1,7 +1,6 @@
 # Technician
 
 [![npm version](https://img.shields.io/npm/v/technician.svg)](https://www.npmjs.com/package/technician) [![npm downloads](https://img.shields.io/npm/dt/technician)](https://www.npmjs.com/package/technician) [![npm license](https://img.shields.io/npm/l/technician.svg)](https://www.npmjs.com/package/technician)
-https://img.shields.io/travis/com/carriejv/technician
 
 [![dependencies](https://img.shields.io/david/carriejv/technician.svg)](https://david-dm.org/carriejv/technician) [![Build Status](https://img.shields.io/travis/com/carriejv/technician.svg)](https://travis-ci.com/carriejv/technician) [![GitKraken](https://img.shields.io/badge/<3-GitKraken-green.svg)](https://www.gitkraken.com/invite/om4Du5zG)
 
