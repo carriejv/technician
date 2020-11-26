@@ -183,6 +183,20 @@ export class Technician<T = Buffer> {
     }
 
     /**
+     * Exports all currently-known config as a {key: value} object.
+     * This will not read any config that has not yet been read.
+     * It should be paired with `readAll()` to export all possible config.
+     * @returns All currently-known config as a {key: value} object.
+     */
+    public export(): {[key: string]: T} {
+        const result: {[key: string]: T} = {};
+        for(const cacheItem of this.entityCache.values()) {
+            result[cacheItem.key] = cacheItem.value;
+        }
+        return result;
+    }
+
+    /**
      * Adds ConfigSource(s) to Technician.
      * If the ConfigSource already exists, this function may be used again to edit its config in place.
      * @param sources   The config source(s) to add. May be a ConfigSource object, an object containing a source and priority,

@@ -374,6 +374,29 @@ describe('TechnicianSync', () => {
 
         });
 
+        describe('#export', () => {
+
+            it('should return an object map of all known config values.', async () => {
+                // Build and configure a Technician instance.
+                const tech = new TechnicianSync(DefaultInterpretersSync.asText());
+                tech.addSource([{source: TEST_SOURCE_1, priority: 1}, {source: TEST_SOURCE_2, priority: 2}]);
+
+                // Read some values
+                tech.read('1only');
+                tech.read('2only');
+
+                // Test
+                const result = tech.export();
+
+                // Assertions
+                expect(result['1only']).to.equal(VALUE_1);
+                expect(result['2only']).to.equal(VALUE_2);
+                // Export should be unaware of unaccessed keys.
+                expect(result['shared']).to.equal(undefined);
+            });
+
+        });
+
         describe('#addSource', () => {
 
             it('should add a config source with default priority.', () => {

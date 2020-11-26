@@ -170,10 +170,6 @@ const technician = new Technician(async configData => {
 
 ## Utility Functions
 
-### ClearCache
-
-`technician.clearCache()` will wipe the entire cache. `technician.clearCache(key)` can also be used to delete only a specific entry.
-
 ### List
 
 `technician.list()` returns a list of all available keys, including aliases.
@@ -181,6 +177,14 @@ const technician = new Technician(async configData => {
 ### Describe
 
 `technician.describe(key)` can be used to return all information on a previously-read key for debugging, including its cache state and raw pre-interpretation buffer.
+
+### Export
+
+`technician.export()` returns all known config as a `{key: value}` object. Export, unlike `readAll()`, does not read new config -- it provides a method to look at the exact state of Technician based on prior reads.
+
+### ClearCache
+
+`technician.clearCache()` will wipe the entire cache. `technician.clearCache(key)` can also be used to delete only a specific entry.
 
 ### Editing Existing Sources
 
