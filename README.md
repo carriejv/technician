@@ -2,7 +2,7 @@
 
 [![npm version](https://img.shields.io/npm/v/technician.svg)](https://www.npmjs.com/package/technician) [![npm downloads](https://img.shields.io/npm/dt/technician)](https://www.npmjs.com/package/technician) [![npm license](https://img.shields.io/npm/l/technician.svg)](https://www.npmjs.com/package/technician)
 
-[![dependencies](https://img.shields.io/david/carriejv/technician.svg)](https://david-dm.org/carriejv/technician) [![Build Status](https://img.shields.io/travis/com/carriejv/technician.svg)](https://travis-ci.com/carriejv/technician) [![GitKraken](https://img.shields.io/badge/<3-GitKraken-green.svg)](https://www.gitkraken.com/invite/om4Du5zG)
+[![dependencies](https://img.shields.io/david/carriejv/technician.svg)](https://david-dm.org/carriejv/technician) [![Build Status](https://github.com/carriejv/technician/workflows/ci-build/badge.svg?branch=master)](https://github.com/carriejv/technician/actions?query=workflow%3Aci-build) [![GitKraken](https://img.shields.io/badge/<3-GitKraken-green.svg)](https://www.gitkraken.com/invite/om4Du5zG)
 
 Technician provides a central service to manage everything related to your application's config.
 
@@ -199,7 +199,6 @@ Sources are managed by reference. The exact `ConfigSource` passed in at creation
 `TechnicianSync` cannot share data with `Technician`, or vice-versa. A single config source may, however, implement both `ConfigSource` and `ConfigSourceSync` to provide methods of accessing config data to both variants of Technician.
 
 `TechnicianSync`'s API is otherwise identical to `Technician`.
-
 
 ## Contributions
 
