@@ -123,14 +123,14 @@ Official Technician config sources can be found in the [@technician](https://www
 
     [![FSConfigSource](https://img.shields.io/npm/v/@technician/fs-config-source?label=@technician/fs-config-source)](https://www.npmjs.com/package/@technician/fs-config-source)
 
-* `JSONConfigSource` - Reads JSON strings or files as a key: value config map.
+* `JSONConfigSource` - Reads JSON strings or files as a key: value config map. Can also be extended a base config source for any source that reads from an internal JSON map.
 
     [![JSONConfigSource](https://img.shields.io/npm/v/@technician/json-config-source?label=@technician/json-config-source)](https://www.npmjs.com/package/@technician/json-config-source)
 
 
 Technician instances can also be used as ConfigSources for other instances of Technician in complex setups.
 
-However, Technician is designed to be easily extensible -- build your own source by implementing the `ConfigSource` interface, extend an existing config source, or use community-made sources!
+Technician is designed to be easily extensible -- build your own source by implementing the `ConfigSource` interface, extend an existing config source, or use community-made sources!
 
 ## Interpreters
 
@@ -138,7 +138,7 @@ By default, all Technician returns any key with valid data as a Buffer. Keys tha
 
 Technician provides a package of `DefaultInterpreters`, which contains `asBuffer()`, `asText('encoding')`, and `asJSON('encoding')`.
 
-However, interpreters can be used to perform any number of complex tasks, including deserialization, decryption of secrets, etc. Interpreters can also be used to validate data; an interpreter that returns `undefined` in a specific case will cause the underlying data source to be ignored.
+Interpreters can also be used to perform whatever tasks are necessary to produce the desired usable config value, including deserialization, decryption of secrets, etc. Interpreters can also be used to validate data; an interpreter that returns `undefined` in a specific case will cause the underlying data source to be ignored.
 
 To implement your own interpreter, use the `Interpreter<T>` typing.
 

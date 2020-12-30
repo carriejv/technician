@@ -2,7 +2,10 @@ name: ci-build
 
 on:
   push:
-    tags-ignore: '**'
+    branches: 
+      - '**'
+    tags-ignore:
+      - '**'
 
 jobs:
   ci-build:
