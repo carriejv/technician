@@ -200,7 +200,6 @@ Sources are managed by reference. The exact `ConfigSource` passed in at creation
 
 `TechnicianSync`'s API is otherwise identical to `Technician`.
 
-
 ## Contributions
 
 Contributions and pull requests are always welcome. Please be sure your code passes all existing tests and linting.
