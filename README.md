@@ -117,11 +117,15 @@ Official Technician config sources can be found in the [@technician](https://www
 
 * `EnvConfigSource` - Reads environment variables into Technician.
 
-    [![Technician](https://img.shields.io/npm/v/@technician/env-config-source?label=@technician/env-config-source)](https://www.npmjs.com/package/@technician/env-config-source)
+    [![EnvConfigSource](https://img.shields.io/npm/v/@technician/env-config-source?label=@technician/env-config-source)](https://www.npmjs.com/package/@technician/env-config-source)
 
-* `FSConfigSource` - Reads directories of config files. It also works with docker & kubernetes secrets.
+* `FSConfigSource` - Reads directories of config files. Also works with Docker & Kubernetes secrets.
 
-    [![Technician](https://img.shields.io/npm/v/@technician/fs-config-source?label=@technician/fs-config-source)](https://www.npmjs.com/package/@technician/fs-config-source)
+    [![FSConfigSource](https://img.shields.io/npm/v/@technician/fs-config-source?label=@technician/fs-config-source)](https://www.npmjs.com/package/@technician/fs-config-source)
+
+* `JSONConfigSource` - Reads JSON strings or files as a key: value config map.
+
+    [![JSONConfigSource](https://img.shields.io/npm/v/@technician/json-config-source?label=@technician/json-config-source)](https://www.npmjs.com/package/@technician/json-config-source)
 
 
 Technician instances can also be used as ConfigSources for other instances of Technician in complex setups.
