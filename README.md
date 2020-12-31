@@ -157,9 +157,9 @@ typeof numberValue === 'number'
 ```ts
 const technician = new Technician(async configData: Promise<number | string> => {
     if(configData.key === 'number-key' || configData.source === someNumberSource) {
-        return await Interpet.asNumber();
+        return await Interpet.asNumber()(configData);
     }
-    return await Interpret.asText();
+    return await Interpret.asText()(configData);
 });
 technician.addSource(someStringSource);
 technician.addSource(someNumberSource);
