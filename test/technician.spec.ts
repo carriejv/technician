@@ -586,7 +586,7 @@ describe('Technician', () => {
                     expect(err).to.be.an.instanceOf(ConfigNotFoundError);
                     return;
                 }
-                throw new Error('No error was thrown.')
+                throw new Error('No error was thrown.');
             }); 
 
         });

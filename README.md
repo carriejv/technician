@@ -28,12 +28,12 @@ Technician is compatible with Node 10 LTS and up. Some sources may have differen
 
 ### The Basics
 ```ts
-import {Technician, DefaultInterpreters} from 'technician';
+import {Technician, Interpret} from 'technician';
 import {EnvConfigSource} from '@technician/env-config-source';
 
 // Create an instance of Technician and a config source.
 // Your interpreter function determines the typing of your results.
-const technician = new Technician(DefaultInterpreters.asText('utf8'));
+const technician = new Technician(Interpret.asText('utf8'));
 const envSource = new EnvConfigSource();
 
 // Add the source to Technician. Now, all of its values can be accessed.
@@ -53,7 +53,7 @@ const everything = await technician.readAll();
 
 ### Combine Multiple Sources Into One
 ```ts
-import {Technician, DefaultInterpreters} from 'technician';
+import {Technician, Interpret} from 'technician';
 import {EnvConfigSource} from '@technician/env-config-source';
 import {FSConfigSource} from '@technician/fs-config-source';
 
@@ -77,11 +77,11 @@ const valueFromFS = await technician.read('id_rsa.pub');
 
 ### Override Config On The Fly
 ```ts
-import {Technician, DefaultInterpreters} from 'technician';
+import {Technician, Interpret} from 'technician';
 import {EnvConfigSource} from '@technician/env-config-source';
 import {FSConfigSource} from '@technician/fs-config-source';
 
-const technician = new Technician(DefaultInterperters.asBuffer(), {
+const technician = new Technician(Interpret.asBuffer(), {
     // Higher priority sources are checked, even if a value is cached.
     cacheRespectsPriority: true,
     // Set a default cache length. By default, the cache lasts forever.
@@ -132,11 +132,70 @@ Technician instances can also be used as ConfigSources for other instances of Te
 
 Technician is designed to be easily extensible -- build your own source by implementing the `ConfigSource` interface, extend an existing config source, or use community-made sources!
 
-## Interpreters
+## Interpreting Config Data
 
-By default, all Technician returns any key with valid data as a Buffer. Keys that do not exist are returned as undefined. The return type of your interpreter determines the return type of your `read()` and related functions. Each Technician instance has only one interpreter; you can choose between a single interpreter with complex typing, or multiple Technician instances with narrowly defined typing.
+By default, all Technician returns any key with valid data as a Buffer. Keys that do not exist are returned as undefined. Technician uses `interpreter` functions to parse these Buffers into the type(s) you want to use in your code.
 
-Technician provides a package of `DefaultInterpreters`, which contains `asBuffer()`, `asText('encoding')`, and `asJSON('encoding')`.
+The return type of your interpreter determines the return type of your `read()` and related functions. Each Technician instance has only one interpreter; you can choose between a single interpreter with complex typing, or multiple Technician instances with narrowly defined typing.
+
+### Narrow Typing
+```ts
+const techStrings = new Technician(Interpret.asText());
+techStrings.addSource(someStringSource);
+const stringValue = techStrings.read('string-key');
+// Typescript knows exactly what this value is.
+typeof stringValue === 'string'
+
+const techNumbers = new Technician(Interpret.asNumber());
+techNumbers.addSource(someNumbersource);
+const numberValue = techNumbers.read('number-key');
+// ... and this one, because you read it from a different instance.
+typeof numberValue === 'number'
+```
+
+### Broad Typing
+```ts
+const technician = new Technician(async configData: Promise<number | string> => {
+    if(configData.key === 'number-key' || configData.source === someNumberSource) {
+        return await Interpet.asNumber();
+    }
+    return await Interpret.asText();
+});
+technician.addSource(someStringSource);
+technician.addSource(someNumberSource);
+
+const stringValue = techStrings.read('string-key');
+const numberValue = techNumbers.read('number-key');
+
+// You can read both keys from one Technician instance,
+// ... but it's up to you to handle the type variance.
+typeof stringValue === 'number' | 'string'
+typeof numberValue === 'number' | 'string'
+```
+
+If using vanilla Javascript instead of Typescript, a single broad interpreter is almost always the best option provided your downstream code can handle the (potentially) variable data types for config values since type checking is irrelevant.
+
+## Default Interpreters
+
+Technician provides a package of basic interpreters as `Interpret`. This contains
+
+* `asBuffer()`
+    - Returns only the raw data Buffer stored internally.
+* `asText('utf8' | 'ascii' | ...)`
+    - Returns a string value from the internal Buffer using the specified encoding.
+* `asBool()`
+    - Returns a boolean value. Buffers not containg exactly `0x00` or `0x01` are ignored.
+* `asNumber('int32' | 'uint32' | 'float' | ...)`
+    - Interprets the Buffer as a numeric value. By default, uses 32-bit signed ints and `os.endianness()`.
+    - Assumes the Buffer contains only the number. Reads from offset 0 and ignores trailing data.
+    - Number types use the naming conventions of [Node's Buffer type](https://nodejs.org/api/buffer.html#buffer_buf_readbigint64be_offset) `readX` functions, with `X` in all lowercase being the id used by Technician.
+    - Number data type may be passed in full with endianness `uint32le` or as only `uint32` to preserve the use of OS-native endianness.
+* `asBigInt('bigint64' | 'biguint64' | ...)`
+    - asNumber, but bigger.
+* `asJSON('utf8' | 'ascii' | ...)`
+    - `JSON.parse()`s the config values. Invalid JSON is ignored.
+* `asTextOrJSON('utf8' | 'ascii' | ...)`
+    - Returns a JSON object or array if the value is valid JSON, else a plaintext string.
 
 Interpreters can also be used to perform whatever tasks are necessary to produce the desired usable config value, including deserialization, decryption of secrets, etc. Interpreters can also be used to validate data; an interpreter that returns `undefined` in a specific case will cause the underlying data source to be ignored.
 
@@ -162,7 +221,7 @@ const technician = new Technician(async configData => {
 await technician.read('THE_ONLY_VALID_KEY') instanceof MyCustomType === true
 ```
 
-Interpreters can also be used to set per-item cache policy. This cache setting will override any default on Technician or the individual source.
+Interpreters can also be used to set per-item cache policy. This cache setting will override any default on Technician or the individual source. 
 ```ts
 const technician = new Technician(async configData => {
     return {
@@ -171,6 +230,8 @@ const technician = new Technician(async configData => {
     };
 });
 ```
+
+If you intend to return an object with the properties `cacheFor` and `value` from an interpreter, it must be wrapped in the object above (or it will be read as an attempt to set an actual cache policy).
 
 ## Utility Functions
 
