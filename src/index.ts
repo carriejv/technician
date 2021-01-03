@@ -41,6 +41,11 @@ import {
     InterpreterSync
 } from './types/source-types';
 
+import {
+    JSONData,
+    JSONPrimitive
+} from './types/util-types';
+
 export {
     Technician,
     TechnicianSync,
@@ -52,5 +57,7 @@ export {
     ConfigSource,
     ConfigSourceSync,
     Interpreter,
-    InterpreterSync
+    InterpreterSync,
+    JSONData,
+    JSONPrimitive
 };

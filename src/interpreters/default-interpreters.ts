@@ -1,7 +1,7 @@
 import os from 'os';
 import { RawConfigEntity } from '../types/entity-types';
 import { Interpreter } from '../types/source-types';
-import { SupportedEncoding, JSON, SupportedNumberEncoding, SupportedBigIntEncoding } from '../types/util-types';
+import { SupportedEncoding, JSONData, SupportedNumberEncoding, SupportedBigIntEncoding } from '../types/util-types';
 
 /** Provides a set of ready-to-use Interpreter functions for use with Container Entitys. */
 export class DefaultInterpreters {
@@ -88,7 +88,7 @@ export class DefaultInterpreters {
      * Returns a JSON object as the entity contents, or undefined if the entity did not exist or was not valid JSON.
      * @param encoding The text encoding to use. Default `utf8`.
      */
-    public static asJSON(encoding: SupportedEncoding = 'utf8'): Interpreter<JSON | undefined> {
+    public static asJSON(encoding: SupportedEncoding = 'utf8'): Interpreter<JSONData | undefined> {
         return async (rawEntity: RawConfigEntity) => {
             const text = rawEntity.data.toString(encoding);
             try {
@@ -105,7 +105,7 @@ export class DefaultInterpreters {
      * This process is not as efficient as using more finely-tailored interpreters, but is provided for convenience.
      * @param encoding The text encoding to use. Default `utf8`.
      */
-    public static asTextOrJSON(encoding: SupportedEncoding = 'utf8'): Interpreter<JSON | string> {
+    public static asTextOrJSON(encoding: SupportedEncoding = 'utf8'): Interpreter<JSONData | string> {
         return async (rawEntity: RawConfigEntity) => {
             const text = rawEntity.data.toString(encoding);
             try {
