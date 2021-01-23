@@ -1,8 +1,9 @@
 import { DefaultInterpretersSync } from "../interpreters/default-interpreters-sync";
 import { ConfigNotFoundError } from "../error/config-not-found-error";
-import { CachedConfigEntity, ConfigEntity } from "../types/entity-types";
+import { CachedConfigEntity } from "../types/entity-types";
 import { TechnicianParams } from "../types/param-types";
 import { InterpreterSync, KnownConfigSourceSync, MetaConfigSourceSync } from "../types/source-types";
+import { TechnicianUtil } from "../util/technician-util";
 
 /** 
  * Technician manages a set of config sources,
@@ -83,7 +84,12 @@ export class TechnicianSync<T = Buffer> {
         for(const sourceKey of sourceKeys) {
             for(const knownSource of this.knownSources) {
                 // Skip any source that doesn't exceed a currently-valid priority
-                if(runningPriority !== undefined && runningPriority > knownSource.priority) {
+                const sourcePriority = knownSource.priority ?? 0;
+                if(runningPriority !== undefined && runningPriority > sourcePriority) {
+                    continue;
+                }
+                // Skip any source with an ignoreIf that evaluates to true
+                if(knownSource.ignoreIf?.()) {
                     continue;
                 }
                 const data = knownSource.source.readSync(sourceKey);
@@ -100,7 +106,7 @@ export class TechnicianSync<T = Buffer> {
                 isNewResult = true;
                 runningPriority = knownSource.priority;
                 // Build result object if a raw result was returned.
-                if(!this.isEntityWithParams(interpreterResult)) {
+                if(!TechnicianUtil.isEntityWithParams(interpreterResult)) {
                     interpreterResult = {
                         value: interpreterResult
                     };
@@ -112,7 +118,7 @@ export class TechnicianSync<T = Buffer> {
                     key,
                     data,
                     value: interpreterResult.value,
-                    priority: knownSource.priority,
+                    priority: sourcePriority,
                     source: knownSource.source,
                     cacheFor: interpreterResult.cacheFor,
                     cacheUntil: interpreterResult.cacheFor ? Date.now() + interpreterResult.cacheFor : Infinity
@@ -232,7 +238,7 @@ export class TechnicianSync<T = Buffer> {
         // Add sources.
         for(let source of sources) {
             // Wrap raw sources in objects
-            if(!this.isSourceWithParams(source)) {
+            if(!TechnicianUtil.isSourceWithParams(source)) {
                 source = {source, priority: priority ?? 0};
             }
             // Remove the source if it already exists, to replace it with new config.
@@ -289,22 +295,6 @@ export class TechnicianSync<T = Buffer> {
         }
         // Return valid cache item.
         return cacheItem;
-    }
-
-    /**
-     * Checks if the return of an interpreter function is a raw value or an entity object with config.
-     * @param entity The interpreter return value.
-     */
-    private isEntityWithParams<T>(entity: ConfigEntity<T> | T): entity is ConfigEntity<T> {
-        return typeof entity === 'object' && Object.keys(entity).includes('value');
-    }
-
-    /**
-     * Checks if a ConfigSource is a raw source object or a KnownConfigSource object with config.
-     * @param source The source object.
-     */
-    private isSourceWithParams(source: MetaConfigSourceSync | KnownConfigSourceSync): source is KnownConfigSourceSync {
-        return Object.keys(source).includes('source') && Object.keys(source).includes('priority');
     }
 
 }

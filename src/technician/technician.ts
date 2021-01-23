@@ -1,8 +1,9 @@
 import { DefaultInterpreters } from "..";
 import { ConfigNotFoundError } from "../error/config-not-found-error";
-import { CachedConfigEntity, ConfigEntity } from "../types/entity-types";
+import { CachedConfigEntity } from "../types/entity-types";
 import { TechnicianParams } from "../types/param-types";
-import { Interpreter, KnownConfigSource, MetaConfigSource } from "../types/source-types";
+import { Interpreter, InterpreterSync, KnownConfigSource, KnownConfigSourceSync, MetaConfigSource, MetaConfigSourceSync } from "../types/source-types";
+import { TechnicianUtil } from '../util/technician-util';
 
 /** 
  * Technician manages a set of config sources,
@@ -32,7 +33,7 @@ export class Technician<T = Buffer> {
      * @constructor Technician
      */
     public constructor(
-        private interpreter: Interpreter<T> = DefaultInterpreters.asBuffer() as any, // As any cast required because <T = Buffer> default is not properly recognized.
+        private interpreter: Interpreter<T> | InterpreterSync<T> = DefaultInterpreters.asBuffer() as any, // As any cast required because <T = Buffer> default is not properly recognized.
         private params?: TechnicianParams) {}
 
     /**
@@ -66,7 +67,12 @@ export class Technician<T = Buffer> {
         for(const sourceKey of sourceKeys) {
             for(const knownSource of this.knownSources) {
                 // Skip any source that doesn't exceed a currently-valid priority
-                if(runningPriority !== undefined && runningPriority > knownSource.priority) {
+                const sourcePriority = knownSource.priority ?? 0;
+                if(runningPriority !== undefined && runningPriority > sourcePriority) {
+                    continue;
+                }
+                // Skip any source with an ignoreIf that evaluates to true
+                if(knownSource.ignoreIf?.()) {
                     continue;
                 }
                 const data = await knownSource.source.read(sourceKey);
@@ -83,7 +89,7 @@ export class Technician<T = Buffer> {
                 isNewResult = true;
                 runningPriority = knownSource.priority;
                 // Build result object if a raw result was returned.
-                if(!this.isEntityWithParams(interpreterResult)) {
+                if(!TechnicianUtil.isEntityWithParams(interpreterResult)) {
                     interpreterResult = {
                         value: interpreterResult
                     };
@@ -95,7 +101,7 @@ export class Technician<T = Buffer> {
                     key,
                     data,
                     value: interpreterResult.value,
-                    priority: knownSource.priority,
+                    priority: sourcePriority,
                     source: knownSource.source,
                     cacheFor: interpreterResult.cacheFor,
                     cacheUntil: interpreterResult.cacheFor ? Date.now() + interpreterResult.cacheFor : Infinity
@@ -207,22 +213,22 @@ export class Technician<T = Buffer> {
      *                  Default priority is 0.
      *                  This param is ignored if {source, priorirty} object(s) are passed.
      */
-    public addSource(sources: MetaConfigSource | KnownConfigSource | (MetaConfigSource | KnownConfigSource)[], priority?: number): void {
+    public addSource(sources: MetaConfigSource | MetaConfigSourceSync | KnownConfigSource | KnownConfigSourceSync | (MetaConfigSource | MetaConfigSourceSync | KnownConfigSource | KnownConfigSourceSync)[], priority?: number): void {
         // Handle singular params.
         if(!Array.isArray(sources)) {
-            sources = [sources as any];
+            sources = [sources as MetaConfigSource | KnownConfigSource];
         }
         // Add sources.
         for(let source of sources) {
             // Wrap raw sources in objects
-            if(!this.isSourceWithParams(source)) {
-                source = {source, priority: priority ?? 0};
+            if(!TechnicianUtil.isSourceWithParams(source)) {
+                source = {source: TechnicianUtil.remapSyncSource(source), priority: priority};
             }
             // Remove the source if it already exists, to replace it with new config.
             // Adding the same source multiple times could create odd behavior.
             this.knownSources = this.knownSources.filter(x => x.source !== (source as KnownConfigSource).source);
             // Add the source w/ new config.
-            this.knownSources.push(source);
+            this.knownSources.push(source as KnownConfigSource);
         }
     }
 
@@ -272,22 +278,6 @@ export class Technician<T = Buffer> {
         }
         // Return valid cache item.
         return cacheItem;
-    }
-
-    /**
-     * Checks if the return of an interpreter function is a raw value or an entity object with config.
-     * @param entity The interpreter return value.
-     */
-    private isEntityWithParams<T>(entity: ConfigEntity<T> | T): entity is ConfigEntity<T> {
-        return typeof entity === 'object' && Object.keys(entity).includes('value');
-    }
-
-    /**
-     * Checks if a ConfigSource is a raw source object or a KnownConfigSource object with config.
-     * @param source The source object.
-     */
-    private isSourceWithParams(source: MetaConfigSource | KnownConfigSource): source is KnownConfigSource {
-        return Object.keys(source).includes('source') && Object.keys(source).includes('priority');
     }
 
 }

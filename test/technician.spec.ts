@@ -1,7 +1,7 @@
 import { expect } from 'chai';
-import { ConfigNotFoundError, DefaultInterpreters, Technician } from '../src';
+import { ConfigNotFoundError, DefaultInterpreters, DefaultInterpretersSync, Technician } from '../src';
 import { KnownConfigSource } from '../src/types/source-types';
-import { TestSource } from './resources/test-source';
+import { TestSource, TestSourceSync } from './resources/test-source';
 
 const VALUE_1 = 'value1';
 const VALUE_2 = 'value2';
@@ -10,6 +10,7 @@ const TEST_SOURCE_1 = new TestSource(Buffer.from(VALUE_1), ['1only', 'shared']);
 const TEST_SOURCE_2 = new TestSource(Buffer.from(VALUE_2), ['2only', 'shared']);
 const TEST_SOURCE_BAD = new TestSource(undefined, ['1only', '2only', 'shared']);
 const TEST_SOURCE_EMPTY = new TestSource(undefined, []);
+const TEST_SOURCE_SYNC = new TestSourceSync(Buffer.from(VALUE_1), ['1only', 'shared']);
 
 describe('Technician', () => {
 
@@ -45,6 +46,30 @@ describe('Technician', () => {
                 expect(result).to.equal(VALUE_1);
             });
 
+            it('should read a single config value from a sync config source.', async () => {
+                // Build and configure a Technician instance.
+                const tech = new Technician(DefaultInterpreters.asText());
+                tech.addSource(TEST_SOURCE_SYNC);
+
+                // Test
+                const result = await tech.read('1only');
+
+                // Assertions
+                expect(result).to.equal(VALUE_1);
+            });
+
+            it('should read a single config value using a sync interpreter.', async () => {
+                // Build and configure a Technician instance.
+                const tech = new Technician(DefaultInterpretersSync.asText());
+                tech.addSource(TEST_SOURCE_1);
+
+                // Test
+                const result = await tech.read('1only');
+
+                // Assertions
+                expect(result).to.equal(VALUE_1);
+            });
+
             it('should read a single config value when multiple sources are present.', async () => {
                 // Build and configure a Technician instance.
                 const tech = new Technician(DefaultInterpreters.asText());
@@ -66,6 +91,18 @@ describe('Technician', () => {
                     return entity.data.toString('utf8');
                 });
                 tech.addSource([TEST_SOURCE_BAD, TEST_SOURCE_1, TEST_SOURCE_2]);
+
+                // Test
+                const result = await tech.read('shared');
+
+                // Assertions
+                expect(result).to.equal(VALUE_2);
+            });
+
+            it('should read a single config value when multiple sources are present and ignore those which an ignoreIf that evaluates to true.', async () => {
+                // Build and configure a Technician instance.
+                const tech = new Technician(DefaultInterpreters.asText());
+                tech.addSource([TEST_SOURCE_BAD, {source: TEST_SOURCE_1, ignoreIf: () => true}, TEST_SOURCE_2]);
 
                 // Test
                 const result = await tech.read('shared');
@@ -406,7 +443,6 @@ describe('Technician', () => {
 
                 // Assertions
                 expect((tech as any).knownSources.find((x: KnownConfigSource) => x.source === TEST_SOURCE_1).source).to.equal(TEST_SOURCE_1);
-                expect((tech as any).knownSources.find((x: KnownConfigSource) => x.source === TEST_SOURCE_1).priority).to.equal(0);
             });
 
             it('should add a config source with custom config.', async () => {
@@ -428,7 +464,6 @@ describe('Technician', () => {
 
                 // Assertions
                 expect((tech as any).knownSources.find((x: KnownConfigSource) => x.source === internalTech).source).to.equal(internalTech);
-                expect((tech as any).knownSources.find((x: KnownConfigSource) => x.source === internalTech).priority).to.equal(0);
             });
 
             it('should add an array of config sources.', async () => {
@@ -439,15 +474,13 @@ describe('Technician', () => {
 
                 // Assertions
                 expect((tech as any).knownSources.find((x: KnownConfigSource) => x.source === TEST_SOURCE_1).source).to.equal(TEST_SOURCE_1);
-                expect((tech as any).knownSources.find((x: KnownConfigSource) => x.source === TEST_SOURCE_1).priority).to.equal(0);
-
+                
                 expect((tech as any).knownSources.find((x: KnownConfigSource) => x.source === TEST_SOURCE_2).source).to.equal(TEST_SOURCE_2);
                 expect((tech as any).knownSources.find((x: KnownConfigSource) => x.source === TEST_SOURCE_2).priority).to.equal(2);
                 expect((tech as any).knownSources.find((x: KnownConfigSource) => x.source === TEST_SOURCE_2).cacheFor).to.equal(2000);
 
 
                 expect((tech as any).knownSources.find((x: KnownConfigSource) => x.source === internalTech).source).to.equal(internalTech);
-                expect((tech as any).knownSources.find((x: KnownConfigSource) => x.source === internalTech).priority).to.equal(0);
             });
 
 
