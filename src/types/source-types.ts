@@ -74,6 +74,9 @@ export interface KnownConfigSourceSync {
     cacheFor?: number
 }
 
+/** Meta-type used for any valid addSource argument. */
+export type ValidConfigSource = MetaConfigSource | MetaConfigSourceSync | KnownConfigSource | KnownConfigSourceSync;
+
 /** 
  * Utility type that encapsulates anything usable as a ConfigSource, including Technician<Buffer>.
  * Typescript currently has no ability to define a "conditional implements" only in the case of <T = Buffer> for Technician,
