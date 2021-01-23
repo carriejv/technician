@@ -4,6 +4,7 @@ dist/test
 .nyc_output/
 coverage/
 docs/
+.github/
 tsconfig.json
 .travis.yml
 .gitignore
