@@ -74,6 +74,18 @@ describe('TechnicianSync', () => {
                 expect(result).to.equal(VALUE_2);
             });
 
+            it('should read a single config value when multiple sources are present and ignore those which an ignoreIf that evaluates to true.', () => {
+                // Build and configure a Technician instance.
+                const tech = new TechnicianSync(DefaultInterpretersSync.asText());
+                tech.addSource([TEST_SOURCE_BAD, {source: TEST_SOURCE_1, ignoreIf: () => true}, TEST_SOURCE_2]);
+
+                // Test
+                const result = tech.read('shared');
+
+                // Assertions
+                expect(result).to.equal(VALUE_2);
+            });
+
             it('should read the highest priority config value available when a key is present in multiple sources.', () => {
                 // Build and configure a TechnicianSync instance.
                 const tech = new TechnicianSync(DefaultInterpretersSync.asText());
@@ -406,7 +418,6 @@ describe('TechnicianSync', () => {
 
                 // Assertions
                 expect((tech as any).knownSources.find((x: KnownConfigSourceSync) => x.source === TEST_SOURCE_1).source).to.equal(TEST_SOURCE_1);
-                expect((tech as any).knownSources.find((x: KnownConfigSourceSync) => x.source === TEST_SOURCE_1).priority).to.equal(0);
             });
 
             it('should add a config source with custom config.', () => {
@@ -428,7 +439,6 @@ describe('TechnicianSync', () => {
 
                 // Assertions
                 expect((tech as any).knownSources.find((x: KnownConfigSourceSync) => x.source === internalTech).source).to.equal(internalTech);
-                expect((tech as any).knownSources.find((x: KnownConfigSourceSync) => x.source === internalTech).priority).to.equal(0);
             });
 
             it('should add an array of config sources.', () => {
@@ -439,7 +449,6 @@ describe('TechnicianSync', () => {
 
                 // Assertions
                 expect((tech as any).knownSources.find((x: KnownConfigSourceSync) => x.source === TEST_SOURCE_1).source).to.equal(TEST_SOURCE_1);
-                expect((tech as any).knownSources.find((x: KnownConfigSourceSync) => x.source === TEST_SOURCE_1).priority).to.equal(0);
 
                 expect((tech as any).knownSources.find((x: KnownConfigSourceSync) => x.source === TEST_SOURCE_2).source).to.equal(TEST_SOURCE_2);
                 expect((tech as any).knownSources.find((x: KnownConfigSourceSync) => x.source === TEST_SOURCE_2).priority).to.equal(2);
@@ -447,7 +456,6 @@ describe('TechnicianSync', () => {
 
 
                 expect((tech as any).knownSources.find((x: KnownConfigSourceSync) => x.source === internalTech).source).to.equal(internalTech);
-                expect((tech as any).knownSources.find((x: KnownConfigSourceSync) => x.source === internalTech).priority).to.equal(0);
             });
 
 

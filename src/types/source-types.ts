@@ -59,9 +59,11 @@ export interface KnownConfigSource {
     /** The ConfigSource */
     source: MetaConfigSource,
     /** The priority of the source. Highest number wins when multiple sources provide the same config key. */
-    priority: number,
+    priority?: number,
     /** Default cache length in ms for values retrieved from this source. Used in place of Technician default if set. */
-    cacheFor?: number
+    cacheFor?: number,
+    /** If set, the config source is ignored whenever the function set returns true. */
+    ignoreIf?: () => boolean
 }
 
 /** Internal type used by Technician to store a sync ConfigSource and related config. */
@@ -69,9 +71,11 @@ export interface KnownConfigSourceSync {
     /** The ConfigSource */
     source: MetaConfigSourceSync,
     /** The priority of the source. Highest number wins when multiple sources provide the same config key. */
-    priority: number,
+    priority?: number,
     /** Default cache length in ms for values retrieved from this source. Used in place of Technician default if set. */
-    cacheFor?: number
+    cacheFor?: number,
+    /** If set, the config source is ignored whenever the function set returns true. */
+    ignoreIf?: () => boolean
 }
 
 /** Meta-type used for any valid addSource argument. */

@@ -84,7 +84,12 @@ export class TechnicianSync<T = Buffer> {
         for(const sourceKey of sourceKeys) {
             for(const knownSource of this.knownSources) {
                 // Skip any source that doesn't exceed a currently-valid priority
-                if(runningPriority !== undefined && runningPriority > knownSource.priority) {
+                const sourcePriority = knownSource.priority ?? 0;
+                if(runningPriority !== undefined && runningPriority > sourcePriority) {
+                    continue;
+                }
+                // Skip any source with an ignoreIf that evaluates to true
+                if(knownSource.ignoreIf?.()) {
                     continue;
                 }
                 const data = knownSource.source.readSync(sourceKey);
@@ -113,7 +118,7 @@ export class TechnicianSync<T = Buffer> {
                     key,
                     data,
                     value: interpreterResult.value,
-                    priority: knownSource.priority,
+                    priority: sourcePriority,
                     source: knownSource.source,
                     cacheFor: interpreterResult.cacheFor,
                     cacheUntil: interpreterResult.cacheFor ? Date.now() + interpreterResult.cacheFor : Infinity

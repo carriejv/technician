@@ -16,7 +16,7 @@ export class TechnicianUtil {
      * @param source The source object.
      */
     public static isSourceWithParams(source: MetaConfigSource | KnownConfigSource | MetaConfigSourceSync | KnownConfigSourceSync): source is KnownConfigSource | KnownConfigSourceSync {
-        return Object.keys(source).includes('source') && Object.keys(source).includes('priority');
+        return Object.keys(source).includes('source');
     }
 
     /**

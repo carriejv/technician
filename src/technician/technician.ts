@@ -67,7 +67,12 @@ export class Technician<T = Buffer> {
         for(const sourceKey of sourceKeys) {
             for(const knownSource of this.knownSources) {
                 // Skip any source that doesn't exceed a currently-valid priority
-                if(runningPriority !== undefined && runningPriority > knownSource.priority) {
+                const sourcePriority = knownSource.priority ?? 0;
+                if(runningPriority !== undefined && runningPriority > sourcePriority) {
+                    continue;
+                }
+                // Skip any source with an ignoreIf that evaluates to true
+                if(knownSource.ignoreIf?.()) {
                     continue;
                 }
                 const data = await knownSource.source.read(sourceKey);
@@ -96,7 +101,7 @@ export class Technician<T = Buffer> {
                     key,
                     data,
                     value: interpreterResult.value,
-                    priority: knownSource.priority,
+                    priority: sourcePriority,
                     source: knownSource.source,
                     cacheFor: interpreterResult.cacheFor,
                     cacheUntil: interpreterResult.cacheFor ? Date.now() + interpreterResult.cacheFor : Infinity
@@ -217,7 +222,7 @@ export class Technician<T = Buffer> {
         for(let source of sources) {
             // Wrap raw sources in objects
             if(!TechnicianUtil.isSourceWithParams(source)) {
-                source = {source: TechnicianUtil.remapSyncSource(source), priority: priority ?? 0};
+                source = {source: TechnicianUtil.remapSyncSource(source), priority: priority};
             }
             // Remove the source if it already exists, to replace it with new config.
             // Adding the same source multiple times could create odd behavior.
