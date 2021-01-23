@@ -8,7 +8,8 @@ Technician provides a central service to manage everything related to your appli
 
 Technician is built to allow for robust and complex config management. With Technician, you can:
 
-* Combine config from a variety of sources like environment variables and config files.
+* Combine config from a variety of sources like environment variables, config files, databases, and CLI arguments.
+* Change config based on environment (or any other runtime condition).
 * Automatically cache the results of all your config reads.
 * Override config from one source (ie, a file) with another (ie, an environment variable) -- with different cache policies for each. Great for debugging in production!
 * Create reusable parsers and validators for complex config.
@@ -49,6 +50,27 @@ const importantValue = await technician.require('MY_IMPORTANT_VAR');
 // ... or just read everything at once.
 const everything = await technician.readAll();
 // {MY_ENV_VAR: 'something', MY_IMPORTANT_VAR: 'something-else', ...}
+```
+
+### Different Environments
+```ts
+import {Technician, Interpret} from 'technician';
+import {EnvConfigSource} from '@technician/env-config-source';
+import {FSConfigSource} from '@technician/fs-config-source';
+
+// By default, all values are returned as Buffers if no Interpreter is set.
+const technician = new Technician();
+const envSource = new EnvConfigSource();
+const filesystemSource = new FSConfigSource('./config/dir/');
+
+// Add the sources.
+technician.addSource([{
+    source: envSource,
+    ignoreIf: () => process.env.NODE_ENV !== 'production'
+}, filesystemSource]);
+
+// Environment vars will only be checked in non-production environments.
+const value = await technician.read('key');
 ```
 
 ### Combine Multiple Sources Into One
@@ -261,7 +283,7 @@ Sources are managed by reference. The exact `ConfigSource` passed in at creation
 
 `TechnicianSync` is provided by this package for use with synchronous code. `TechnicianSync` can only use synchronous sources (`ConfigSourceSync`) and interpreters (`InterpreterSync`). This is not the recommended approach to using Technician, but is provided for compatability with purely sync code.
 
-`TechnicianSync` cannot share data with `Technician`, or vice-versa. A single config source may, however, implement both `ConfigSource` and `ConfigSourceSync` to provide methods of accessing config data to both variants of Technician.
+`Technician` may utilize sync-only sources and interpreters, but `TechnicianSync` cannot use async components. A single config source may, however, implement both `ConfigSource` and `ConfigSourceSync` to provide methods of accessing config data to both variants of Technician.
 
 `TechnicianSync`'s API is otherwise identical to `Technician`.
 
