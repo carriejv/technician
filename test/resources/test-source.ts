@@ -57,3 +57,38 @@ export class TestSource implements ConfigSource, ConfigSourceSync {
         return this.keys;
     }
 }
+
+/** Sync-only test source. */
+export class TestSourceSync implements ConfigSourceSync {
+    /**
+     * Builds a new TestSourceSync.
+     * @param value The value to return from all reads.
+     * @param keys Array of keys to return from readAll, list.
+     * @constructor TestSourceSync
+     */
+    constructor(
+        private value: Buffer | undefined,
+        private keys: string[]) {}
+
+    /** @see {@link ConfigSourceSync#readSync} */
+    public readSync(key: string): Buffer | undefined {
+        if(this.keys.includes(key)) {
+            return this.value;
+        }
+        return undefined;
+    }
+
+    /** @see {@link ConfigSourceSync#readAllSync} */
+    public readAllSync(): {[key: string]: Buffer | undefined} {
+        const obj: {[key: string]: Buffer | undefined} = {};
+        for(const key of this.keys) {
+            obj[key] = this.value;
+        }
+        return obj;
+    }
+
+    /** @see {@link ConfigSourceSync#listSync} */
+    public listSync(): string[] {
+        return this.keys;
+    }
+}

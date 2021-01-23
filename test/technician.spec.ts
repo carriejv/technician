@@ -1,7 +1,7 @@
 import { expect } from 'chai';
-import { ConfigNotFoundError, DefaultInterpreters, Technician } from '../src';
+import { ConfigNotFoundError, DefaultInterpreters, DefaultInterpretersSync, Technician } from '../src';
 import { KnownConfigSource } from '../src/types/source-types';
-import { TestSource } from './resources/test-source';
+import { TestSource, TestSourceSync } from './resources/test-source';
 
 const VALUE_1 = 'value1';
 const VALUE_2 = 'value2';
@@ -10,6 +10,7 @@ const TEST_SOURCE_1 = new TestSource(Buffer.from(VALUE_1), ['1only', 'shared']);
 const TEST_SOURCE_2 = new TestSource(Buffer.from(VALUE_2), ['2only', 'shared']);
 const TEST_SOURCE_BAD = new TestSource(undefined, ['1only', '2only', 'shared']);
 const TEST_SOURCE_EMPTY = new TestSource(undefined, []);
+const TEST_SOURCE_SYNC = new TestSourceSync(Buffer.from(VALUE_1), ['1only', 'shared']);
 
 describe('Technician', () => {
 
@@ -36,6 +37,30 @@ describe('Technician', () => {
             it('should read a single config value using a custom interpreter.', async () => {
                 // Build and configure a Technician instance.
                 const tech = new Technician(DefaultInterpreters.asText());
+                tech.addSource(TEST_SOURCE_1);
+
+                // Test
+                const result = await tech.read('1only');
+
+                // Assertions
+                expect(result).to.equal(VALUE_1);
+            });
+
+            it('should read a single config value from a sync config source.', async () => {
+                // Build and configure a Technician instance.
+                const tech = new Technician(DefaultInterpreters.asText());
+                tech.addSource(TEST_SOURCE_SYNC);
+
+                // Test
+                const result = await tech.read('1only');
+
+                // Assertions
+                expect(result).to.equal(VALUE_1);
+            });
+
+            it('should read a single config value using a sync interpreter.', async () => {
+                // Build and configure a Technician instance.
+                const tech = new Technician(DefaultInterpretersSync.asText());
                 tech.addSource(TEST_SOURCE_1);
 
                 // Test
