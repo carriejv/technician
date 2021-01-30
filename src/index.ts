@@ -43,7 +43,10 @@ import {
 
 import {
     JSONData,
-    JSONPrimitive
+    JSONPrimitive,
+    SupportedEncoding,
+    SupportedNumberEncoding,
+    SupportedBigIntEncoding
 } from './types/util-types';
 
 export {
@@ -59,5 +62,8 @@ export {
     Interpreter,
     InterpreterSync,
     JSONData,
-    JSONPrimitive
+    JSONPrimitive,
+    SupportedEncoding,
+    SupportedNumberEncoding,
+    SupportedBigIntEncoding
 };
