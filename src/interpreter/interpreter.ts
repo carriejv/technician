@@ -1,5 +1,5 @@
 import { ConfigEntity } from '../types/entity-types';
-import { ConfigSource } from '../types/source-types';
+import { ConfigSource, ConfigSourceSync } from '../types/source-types';
 
 /** Interpreter is a middleware ConfigSource that does pre-cache work on raw config values returned from low-level sources. */
 export class Interpreter<T, U> implements ConfigSource<U> {
