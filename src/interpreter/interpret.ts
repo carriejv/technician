@@ -1,7 +1,7 @@
 import * as os from 'os';
 import { Interpreter } from './interpreter';
 import { ConfigEntity } from '../types/entity-types';
-import { ConfigSource, ConfigSourceSync } from '../types/source-types';
+import { ConfigSource } from '../types/source-types';
 import { JSONData, SupportedBigIntEncoding, SupportedEncoding, SupportedNumberEncoding } from '../types/util-types';
 
 /** 
@@ -18,7 +18,7 @@ export class Interpret {
          * @param configSource The source to interpret.
          * @param encoding     The string encoding type to use. Default `utf8`.
          */
-        asString: (configSource: ConfigSource<Buffer> | ConfigSourceSync<Buffer>, encoding: SupportedEncoding = 'utf8') => new Interpreter(configSource, (entity: ConfigEntity<Buffer | undefined>) => entity.value?.toString(encoding)),
+        asString: (configSource: ConfigSource<Buffer>, encoding: SupportedEncoding = 'utf8') => new Interpreter(configSource, (entity: ConfigEntity<Buffer | undefined>) => entity.value?.toString(encoding)),
 
         /**
          * Interprets buffer values as booleans.
@@ -87,11 +87,8 @@ export class Interpret {
          */
         asJSON: (configSource: ConfigSource<Buffer>, encoding: SupportedEncoding = 'utf8') => new Interpreter<Buffer, JSONData>(configSource, (entity: ConfigEntity<Buffer | undefined>) => {
             const text = entity.value?.toString(encoding);
-            if(!text) {
-                return undefined;
-            }
             try {
-                return JSON.parse(text);
+                return text && JSON.parse(text);
             }
             catch(err) {
                 return undefined;
@@ -106,11 +103,8 @@ export class Interpret {
          */
         asStringOrJSON: (configSource: ConfigSource<Buffer>, encoding: SupportedEncoding = 'utf8') => new Interpreter<Buffer, JSONData | string>(configSource, (entity: ConfigEntity<Buffer | undefined>) => {
             const text = entity.value?.toString(encoding);
-            if(!text) {
-                return undefined;
-            }
             try {
-                return JSON.parse(text);
+                return text && JSON.parse(text);
             }
             catch(err) {
                 return text;
@@ -153,7 +147,28 @@ export class Interpret {
          * Returns a JSON object as the entity contents, or undefined if the entity did not exist or was not valid JSON.
          * @param configSource The source to interpret.
          */
-        asJSON: (configSource: ConfigSource<string>) => new Interpreter<string, JSONData>(configSource, (entity: ConfigEntity<string | undefined>) => entity.value && JSON.parse(entity.value))
+        asJSON: (configSource: ConfigSource<string>) => new Interpreter<string, JSONData>(configSource, (entity: ConfigEntity<string | undefined>) => {
+            try {
+                return entity.value && JSON.parse(entity.value);
+            }
+            catch(err) {
+                return undefined;
+            }
+        }),
+
+        /**
+         * Returns a JSON object as the entity contents or a string if the value exists but is not valid JSON.
+         * This process is not as efficient as using more finely-tailored interpreters, but is provided for convenience.
+         * @param configSource The source to interpret.
+         */
+        asStringOrJSON: (configSource: ConfigSource<string>) => new Interpreter<string, JSONData>(configSource, (entity: ConfigEntity<string | undefined>) => {
+            try {
+                return entity.value && JSON.parse(entity.value);
+            }
+            catch(err) {
+                return entity.value;
+            }
+        })
         
     };
 
