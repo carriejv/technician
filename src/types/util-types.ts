@@ -20,4 +20,4 @@ export type SupportedBigIntEncoding =  SupportedBigIntForms | `${SupportedBigInt
 export type JSONPrimitive = string | number | boolean;
 
 /** JSON typing for return of the default `asJSON` interpreters. */
-export type JSONData = {[key: string]: JSONPrimitive | JSON | JSON[]} | JSON[] | JSONPrimitive[];
+export type JSONData = {[key: string]: JSONPrimitive | JSONData | JSONData[]} | JSONData[] | JSONPrimitive[];

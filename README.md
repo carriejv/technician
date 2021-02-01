@@ -66,7 +66,7 @@ const filesystemSource = new FSConfigSource('./config/dir/');
 // Add the sources.
 technician.addSource([{
     source: envSource,
-    ignoreIf: () => process.env.NODE_ENV !== 'production'
+    ignoreIf: () => process.env.NODE_ENV === 'production'
 }, filesystemSource]);
 
 // Environment vars will only be checked in non-production environments.

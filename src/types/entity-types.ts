@@ -1,13 +1,13 @@
-import { MetaConfigSource, MetaConfigSourceSync } from "./source-types";
+import { ConfigSource, ConfigSourceSync } from './source-types';
 
 /** Defines info about an entity being read, pre-interpretation. */
-export interface RawConfigEntity {
+export interface RawConfigEntity<T> {
     /** The key of the entity. */
     key: string;
     /** The source from which the config value was read. */
-    source: MetaConfigSource | MetaConfigSourceSync
+    source: ConfigSource<T> | ConfigSourceSync<T>
     /** The data contents of the entity. */
-    data: Buffer;
+    value: T;
 }
 
 /** 
@@ -22,7 +22,7 @@ export interface ConfigEntity<T> {
 }
 
 /** Entity object stored in the internal cache. */
-export interface CachedConfigEntity<T> extends RawConfigEntity, ConfigEntity<T> {
+export interface CachedConfigEntity<T> extends RawConfigEntity<T>, ConfigEntity<T> {
     /** Timestamp at which cached entity will expire. */
     cacheUntil: number;
     /** Priority of the source which generated the config value. */

@@ -1,9 +1,9 @@
-import { DefaultInterpretersSync } from "../interpreters/default-interpreters-sync";
-import { ConfigNotFoundError } from "../error/config-not-found-error";
-import { CachedConfigEntity } from "../types/entity-types";
-import { TechnicianParams } from "../types/param-types";
-import { InterpreterSync, KnownConfigSourceSync, MetaConfigSourceSync } from "../types/source-types";
-import { TechnicianUtil } from "../util/technician-util";
+import { DefaultInterpretersSync } from '../interpreters/default-interpreters-sync';
+import { ConfigNotFoundError } from '../error/config-not-found-error';
+import { CachedConfigEntity } from '../types/entity-types';
+import { TechnicianParams } from '../types/param-types';
+import { InterpreterSync, ConfigSourceParamsSync, MetaConfigSourceSync } from '../types/source-types';
+import { TechnicianUtil } from '../util/technician-util';
 
 /** 
  * Technician manages a set of config sources,
@@ -17,7 +17,7 @@ export class TechnicianSync<T = Buffer> {
     private entityCache: Map<string, CachedConfigEntity<T>> = new Map();
 
     /** Array of known sync entity sources. */
-    private knownSources: KnownConfigSourceSync[] = [];
+    private knownSources: ConfigSourceParamsSync[] = [];
 
     /** Key alias map. */
     private aliases: Map<string, string[]> = new Map();
@@ -230,7 +230,7 @@ export class TechnicianSync<T = Buffer> {
      *                  Default priority is 0.
      *                  This param is ignored if {source, priorirty} object(s) are passed.
      */
-    public addSource(sources: MetaConfigSourceSync | KnownConfigSourceSync | (MetaConfigSourceSync | KnownConfigSourceSync)[], priority?: number): void {
+    public addSource(sources: MetaConfigSourceSync | ConfigSourceParamsSync | (MetaConfigSourceSync | ConfigSourceParamsSync)[], priority?: number): void {
         // Handle singular params.
         if(!Array.isArray(sources)) {
             sources = [sources as any];
@@ -243,7 +243,7 @@ export class TechnicianSync<T = Buffer> {
             }
             // Remove the source if it already exists, to replace it with new config.
             // Adding the same source multiple times could create odd behavior.
-            this.knownSources = this.knownSources.filter(x => x.source !== (source as KnownConfigSourceSync).source);
+            this.knownSources = this.knownSources.filter(x => x.source !== (source as ConfigSourceParamsSync).source);
             // Add the source w/ new config.
             this.knownSources.push(source);
         }

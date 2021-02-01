@@ -1,7 +1,7 @@
-import { ConfigSource, ConfigSourceSync } from "../../src";
+import { ConfigSource, ConfigSourceSync } from '../../src';
 
 /** Super simple ConfigSource for testing. */
-export class TestSource implements ConfigSource, ConfigSourceSync {
+export class TestSource implements ConfigSource<Buffer>, ConfigSourceSync<Buffer> {
 
     /**
      * Builds a new TestSource.
@@ -59,7 +59,7 @@ export class TestSource implements ConfigSource, ConfigSourceSync {
 }
 
 /** Sync-only test source. */
-export class TestSourceSync implements ConfigSourceSync {
+export class TestSourceSync implements ConfigSourceSync<Buffer> {
     /**
      * Builds a new TestSourceSync.
      * @param value The value to return from all reads.

@@ -1,5 +1,5 @@
-import { ConfigEntity } from "../types/entity-types";
-import { KnownConfigSource, KnownConfigSourceSync, MetaConfigSource, MetaConfigSourceSync } from "../types/source-types";
+import { ConfigEntity } from '../types/entity-types';
+import { ConfigSource, ConfigSourceParams, ConfigSourceParamsSync, ConfigSourceSync } from '../types/source-types';
 
 /** Utility functions used throughout Technician */
 export class TechnicianUtil {
@@ -12,10 +12,10 @@ export class TechnicianUtil {
     }
 
     /**
-     * Checks if a ConfigSource is a raw source object or a KnownConfigSource object with config.
+     * Checks if a ConfigSource is a raw source object or a ConfigSourceParams object with config.
      * @param source The source object.
      */
-    public static isSourceWithParams(source: MetaConfigSource | KnownConfigSource | MetaConfigSourceSync | KnownConfigSourceSync): source is KnownConfigSource | KnownConfigSourceSync {
+    public static isSourceWithParams<T>(source: ConfigSource<T> | ConfigSourceParams<T> | ConfigSourceSync<T> | ConfigSourceParamsSync<T>): source is ConfigSourceParams<T> | ConfigSourceParamsSync<T> {
         return Object.keys(source).includes('source');
     }
 
@@ -25,7 +25,7 @@ export class TechnicianUtil {
      * @param source The sync config source
      * @returns The source, remapped to an async-compatible source if necessary.
      */
-    public static remapSyncSource(source: MetaConfigSource | MetaConfigSourceSync): MetaConfigSource {
+    public static remapSyncSource<T>(source: ConfigSource<T> | ConfigSourceSync<T>): ConfigSource<T> {
         // Typescript isn't okay with checking existance of a function, for some reason.
         const typelessSource = source as any;
         for(const fn of ['read', 'readAll', 'list']) {
@@ -33,6 +33,6 @@ export class TechnicianUtil {
                 typelessSource[fn] = typelessSource[`${fn}Sync`];
             }
         }
-        return source as MetaConfigSource;
+        return source as ConfigSource<T>;
     }
 }
