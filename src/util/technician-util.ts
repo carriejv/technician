@@ -1,15 +1,7 @@
-import { ConfigEntity } from '../types/entity-types';
 import { ConfigSource, ConfigSourceParams, ConfigSourceParamsSync, ConfigSourceSync } from '../types/source-types';
 
 /** Utility functions used throughout Technician */
 export class TechnicianUtil {
-    /**
-     * Checks if the return of an interpreter function is a raw value or an entity object with config.
-     * @param entity The interpreter return value.
-     */
-    public static isEntityWithParams<T>(entity: ConfigEntity<T> | T): entity is ConfigEntity<T> {
-        return typeof entity === 'object' && Object.keys(entity).includes('value');
-    }
 
     /**
      * Checks if a ConfigSource is a raw source object or a ConfigSourceParams object with config.
@@ -20,19 +12,24 @@ export class TechnicianUtil {
     }
 
     /**
-     * Adds a compatibility layer to a ConfigSourceSync, allowing it to be used as a ConfigSource.
-     * No op on async sources.
-     * @param source The sync config source
-     * @returns The source, remapped to an async-compatible source if necessary.
+     * Adds a compatability layer to config sources, allowing sync sources to be called via async functions
+     * and defining no-op sync functions for async-only sources.
+     * @param source The config source
+     * @returns The hybrid source.
      */
-    public static remapSyncSource<T>(source: ConfigSource<T> | ConfigSourceSync<T>): ConfigSource<T> {
+    public static buildHybridSource<T>(source: ConfigSource<T> | ConfigSourceSync<T>): ConfigSource<T> & ConfigSourceSync<T> {
         // Typescript isn't okay with checking existance of a function, for some reason.
         const typelessSource = source as any;
         for(const fn of ['read', 'readAll', 'list']) {
-            if(typeof typelessSource[`${fn}Sync`] === 'function') {
+            // Add async-compatible functions to sync sources.
+            if(typeof typelessSource[fn] === 'undefined' && typeof typelessSource[`${fn}Sync`] === 'function') {
                 typelessSource[fn] = typelessSource[`${fn}Sync`];
             }
+            // Add noop functions to async-only sources.
+            else if(typeof typelessSource[`${fn}Sync`] === 'undefined') {
+                typelessSource[`${fn}Sync`] = () => undefined;
+            }
         }
-        return source as ConfigSource<T>;
+        return source as ConfigSource<T> & ConfigSourceSync<T>;
     }
 }

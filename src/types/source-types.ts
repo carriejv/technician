@@ -1,5 +1,3 @@
-import { ConfigEntity, RawConfigEntity } from './entity-types';
-
 /** Defines a source of config accessible asynchronously by Technician. */
 export interface ConfigSource<T> {
     /**
@@ -8,7 +6,7 @@ export interface ConfigSource<T> {
      * @param key The key of the secret to read.
      * @returns A Buffer containing the data associated with the key, or undefined it does not exist.
      */
-    read(key: string): Promise<T | ConfigEntity<T> | undefined> | T | ConfigEntity<T> | undefined;
+    read(key: string): Promise<T | undefined> | T | undefined;
 
     /**
      * Reads all config entities asynchronously, returning an object keyed by config key with data Buffers containing their contents.
@@ -16,14 +14,14 @@ export interface ConfigSource<T> {
      * @param key The key of the secret to read.
      * @returns An object of key/value pairs, where the values are Buffers containing the data for each key.
      */
-    readAll(): Promise<{[key: string]: T | ConfigEntity<T> | undefined}> | {[key: string]: T | ConfigEntity<T> | undefined};
+    readAll(): Promise<{[key: string]: T | undefined}> | {[key: string]: T | undefined};
 
     /** 
      * Lists all keys known to the config source.
      * This should provide all keys for the object returned by readAll().
      * @returns An array of strings containing all keys known to the config source. Should return an empty array if no keys are present.
      */
-    list(): Promise<string[]>;
+    list(): Promise<string[]> | string[];
 }
 
 /** Defines a source of config accessible synchnronously by Technician. */
@@ -34,7 +32,7 @@ export interface ConfigSourceSync<T> {
      * @param key The key of the secret to read.
      * @returns A Buffer containing the data associated with the key, or undefined it does not exist.
      */
-    readSync(key: string): T | ConfigEntity<T> | undefined;
+    readSync(key: string): T | undefined;
 
     /**
      * Reads all config entities synchronously, returning an object keyed by config key with data Buffers containing their contents.
@@ -42,7 +40,7 @@ export interface ConfigSourceSync<T> {
      * @param key The key of the secret to read.
      * @returns An object of key/value pairs, where the values are Buffers containing the data for each key.
      */
-    readAllSync(): {[key: string]: T | ConfigEntity<T> | undefined};
+    readAllSync(): {[key: string]: T | undefined};
 
     /** 
      * Lists all keys known to the config source.
@@ -75,9 +73,3 @@ export interface ConfigSourceParamsSync<T> {
     /** If set, the config source is ignored whenever the function set returns true. */
     ignoreIf?: () => boolean
 }
-
-/** Defines an interpreter function. */
-export type Interpreter<T, U> = (rawEntity: RawConfigEntity<T>) => Promise<U> | Promise<ConfigEntity<U>>;
-
-/** Defines a synchronous interpreter function. */
-export type InterpreterSync<T, U> = (rawEntity: RawConfigEntity<T>) => U | ConfigEntity<U>;

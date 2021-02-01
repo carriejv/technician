@@ -25,7 +25,7 @@ export class Technician<T> implements ConfigSource<T> {
      * @param configSource  The config source(s) to add. May be a ConfigSource object, an object containing a source and params,
      *                      or an array of these. A Technician instance may also be used as a ConfigSource for another Technician instance.
      * @param params        Params object. @see {@link TechnicianParams}.
-     * @constructor Technician
+     * @constructor         Technician
      */
     public constructor(configSource: ConfigSource<T> | ConfigSourceParams<T> | (ConfigSource<T> | ConfigSourceParams<T>)[], private params?: TechnicianParams) {
         this.addSource(configSource);
@@ -78,22 +78,15 @@ export class Technician<T> implements ConfigSource<T> {
                 // The candidate is valid.
                 isNewResult = true;
                 runningPriority = knownSource.priority;
-                // Build result object if a raw result was returned.
-                if(!TechnicianUtil.isEntityWithParams(readResult)) {
-                    readResult = {
-                        value: readResult
-                    };
-                }
-                // Calculate cache length. Entity > Source > Global
-                readResult.cacheFor = readResult.cacheFor ?? knownSource.cacheFor ?? this.params?.defaultCacheLength;
+                // Calculate cache length
+                const cacheLength = knownSource.cacheFor ?? this.params?.defaultCacheLength;
                 // Update result candidate
                 resultCandidate = {
                     key,
-                    value: readResult.value,
+                    value: readResult,
                     priority: sourcePriority,
                     source: knownSource.source,
-                    cacheFor: readResult.cacheFor,
-                    cacheUntil: readResult.cacheFor ? Date.now() + readResult.cacheFor : Infinity
+                    cacheUntil: cacheLength ? Date.now() + cacheLength : Infinity
                 };
             }
         }
@@ -210,7 +203,7 @@ export class Technician<T> implements ConfigSource<T> {
                 source = {source};
             }
             // Add sync source compatability layer
-            source.source = TechnicianUtil.remapSyncSource(source.source)
+            source.source = TechnicianUtil.buildHybridSource(source.source)
             // Remove the source if it already exists, to replace it with new config.
             // Adding the same source multiple times could create odd behavior.
             this.knownSources = this.knownSources.filter(x => x.source !== (source as ConfigSourceParams<T>).source);

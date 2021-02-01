@@ -1,9 +1,16 @@
 import { ConfigEntity } from '../types/entity-types';
+import { InterpreterFunctionSet } from '../types/param-types';
 import { ConfigSource, ConfigSourceSync } from '../types/source-types';
+import { TechnicianUtil } from '../util/technician-util';
 
 /** Interpreter is a middleware ConfigSource that does pre-cache work on raw config values returned from low-level sources. */
-export class Interpreter<T, U> implements ConfigSource<U> {
+export class Interpreter<T, U> implements ConfigSource<U>, ConfigSourceSync<U> {
     
+    /** The internal config source being interpreted. */
+    private configSource: ConfigSource<T> & ConfigSourceSync<T>;
+
+    private interpreterFunction: InterpreterFunctionSet<T, U>;
+
     /**
      * Builds a new Interpreter.
      * @param configSource        The config source to interpret.
@@ -12,14 +19,25 @@ export class Interpreter<T, U> implements ConfigSource<U> {
      *                            Interpreters can be used to perform any expensive operations necessary to prepared config values for use.
      * @constructor               Interpreter
      */
-    public constructor(private configSource: ConfigSource<T>, private interpreterFunction: (ConfigEntity: ConfigEntity<T | undefined>) => Promise<U> | U) {}
+    public constructor(configSource: ConfigSource<T> | ConfigSourceSync<T>, interpreterFunction: InterpreterFunctionSet<T, U> | ((ConfigEntity: ConfigEntity<T | undefined>) => U | undefined)) {
+        this.configSource = TechnicianUtil.buildHybridSource(configSource);
+        if(typeof interpreterFunction === 'function') {
+            this.interpreterFunction = {
+                async: interpreterFunction,
+                sync: interpreterFunction
+            };
+        }
+        else {
+            this.interpreterFunction = interpreterFunction;
+        }
+    }
 
     /** 
      * Reads the contents of the underlying source and runs the interpreter function on it.
      * @see {@link ConfigSource#read}
      */
     public async read(key: string): Promise<U | undefined> {
-        return await this.interpreterFunction({
+        return await this.interpreterFunction.async?.({
             key: key,
             source: this.configSource,
             value: await this.configSource.read(key)
@@ -34,7 +52,7 @@ export class Interpreter<T, U> implements ConfigSource<U> {
         const rawValues = await this.configSource.readAll();
         const interpretedValues: {[key: string]: U | undefined} = {};
         for(const key of Object.keys(rawValues)) {
-            interpretedValues[key] = await this.interpreterFunction({
+            interpretedValues[key] = await this.interpreterFunction.async?.({
                 key: key,
                 source: this.configSource,
                 value: await this.configSource.read(key)
@@ -45,9 +63,47 @@ export class Interpreter<T, U> implements ConfigSource<U> {
 
     /** 
      * Lists all keys in the underlying source.
-     * @see {@link ConfigSource#readAll}
+     * @see {@link ConfigSource#list}
      */
     public async list(): Promise<string[]> {
         return await this.configSource.list();
     }
+
+    /** 
+     * Reads the contents of the underlying source and runs the interpreter function on it.
+     * @see {@link ConfigSourceSync#readSync}
+     */
+    public readSync(key: string): U | undefined {
+        return this.interpreterFunction.sync?.({
+            key: key,
+            source: this.configSource,
+            value: this.configSource.readSync(key)
+        });
+    }
+
+    /** 
+     * Reads all contents of the underlying source and runs the interpreter function on them.
+     * @see {@link ConfigSourceSync#readAllSync}
+     */
+    public readAllSync(): {[key: string]: U | undefined} {
+        const rawValues = this.configSource.readAllSync();
+        const interpretedValues: {[key: string]: U | undefined} = {};
+        for(const key of Object.keys(rawValues)) {
+            interpretedValues[key] = this.interpreterFunction.sync?.({
+                key: key,
+                source: this.configSource,
+                value: this.configSource.readSync(key)
+            });
+        }
+        return interpretedValues;
+    }
+
+    /** 
+     * Lists all keys in the underlying source.
+     * @see {@link ConfigSourceSync#listSync}
+     */
+    public listSync(): string[] {
+        return this.configSource.listSync();
+    }
+
 }

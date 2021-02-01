@@ -1,7 +1,7 @@
 import * as os from 'os';
 import { Interpreter } from './interpreter';
 import { ConfigEntity } from '../types/entity-types';
-import { ConfigSource } from '../types/source-types';
+import { ConfigSource, ConfigSourceSync } from '../types/source-types';
 import { JSONData, SupportedBigIntEncoding, SupportedEncoding, SupportedNumberEncoding } from '../types/util-types';
 
 /** 
@@ -18,7 +18,7 @@ export class Interpret {
          * @param configSource The source to interpret.
          * @param encoding     The string encoding type to use. Default `utf8`.
          */
-        asString: (configSource: ConfigSource<Buffer>, encoding: SupportedEncoding = 'utf8') => new Interpreter(configSource, (entity: ConfigEntity<Buffer | undefined>) => entity.value?.toString(encoding)),
+        asString: (configSource: ConfigSource<Buffer> | ConfigSourceSync<Buffer>, encoding: SupportedEncoding = 'utf8') => new Interpreter(configSource, (entity: ConfigEntity<Buffer | undefined>) => entity.value?.toString(encoding)),
 
         /**
          * Interprets buffer values as booleans.
@@ -85,7 +85,7 @@ export class Interpret {
          * @param configSource The source to interpret.
          * @param encoding     The string encoding type to use. Default `utf8`.
          */
-        asJSON: (configSource: ConfigSource<Buffer>, encoding: SupportedEncoding = 'utf8') => new Interpreter<Buffer, JSONData | undefined>(configSource, (entity: ConfigEntity<Buffer | undefined>) => {
+        asJSON: (configSource: ConfigSource<Buffer>, encoding: SupportedEncoding = 'utf8') => new Interpreter<Buffer, JSONData>(configSource, (entity: ConfigEntity<Buffer | undefined>) => {
             const text = entity.value?.toString(encoding);
             if(!text) {
                 return undefined;
@@ -104,7 +104,7 @@ export class Interpret {
          * @param configSource The source to interpret.
          * @param encoding     The string encoding type to use. Default `utf8`.
          */
-        asStringOrJSON: (configSource: ConfigSource<Buffer>, encoding: SupportedEncoding = 'utf8') => new Interpreter<Buffer, JSONData | string | undefined>(configSource, (entity: ConfigEntity<Buffer | undefined>) => {
+        asStringOrJSON: (configSource: ConfigSource<Buffer>, encoding: SupportedEncoding = 'utf8') => new Interpreter<Buffer, JSONData | string>(configSource, (entity: ConfigEntity<Buffer | undefined>) => {
             const text = entity.value?.toString(encoding);
             if(!text) {
                 return undefined;
@@ -153,7 +153,7 @@ export class Interpret {
          * Returns a JSON object as the entity contents, or undefined if the entity did not exist or was not valid JSON.
          * @param configSource The source to interpret.
          */
-        asJSON: (configSource: ConfigSource<string>, encoding: SupportedNumberEncoding = 'int32') => new Interpreter(configSource, (entity: ConfigEntity<string | undefined>) => entity.value && JSON.parse(entity.value))
+        asJSON: (configSource: ConfigSource<string>) => new Interpreter<string, JSONData>(configSource, (entity: ConfigEntity<string | undefined>) => entity.value && JSON.parse(entity.value))
         
     };
 
