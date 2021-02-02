@@ -9,7 +9,7 @@ export class Alias {
      * Should not be called directly. use `Alias.key()` or `Alias.keys()` instead.
      * @param aliasMap The alias map to use.
      */
-    constructor(private aliasMap: {[key: string]: string} = {}) {};
+    constructor(private aliasMap: {[key: string]: string} = {}) {}
 
     /**
      * Creates a single key alias.
@@ -17,7 +17,7 @@ export class Alias {
      * Example: `Alias.key('MY_ENV_VAR').to('my-var')...;`
      * @param key The key used by the base config source.
      */
-    public static key(key: string) {
+    public static key(key: string): {to: (alias: string) => Alias} {
         return {
             to: (alias: string) => new Alias({[key]: alias})
         };
@@ -28,7 +28,7 @@ export class Alias {
      * Example: `Alias.keys({'MY_ENV_VAR': 'my-var', ...});`
      * @param key The key used by the base config source.
      */
-    public static keys(aliasMap: {[key: string]: string}) {
+    public static keys(aliasMap: {[key: string]: string}): Alias {
         return new Alias(aliasMap);
     }
 
@@ -38,7 +38,7 @@ export class Alias {
      * Example: `Alias.key('MY_ENV_VAR').to('my-var')...;`
      * @param key The key used by the base config source.
      */
-    public key(key: string) {
+    public key(key: string): {to: (alias: string) => Alias}  {
         return {
             to: (alias: string) => new Alias({...this.aliasMap, [key]: alias})
         };
@@ -49,7 +49,7 @@ export class Alias {
      * Example: `Alias.keys({'MY_ENV_VAR': 'my-var', ...});`
      * @param key The key used by the base config source.
      */
-    public keys(aliasMap: {[key: string]: string}) {
+    public keys(aliasMap: {[key: string]: string}): Alias {
         return new Alias({...this.aliasMap, ...aliasMap});
     }
 

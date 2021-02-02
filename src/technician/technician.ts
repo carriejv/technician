@@ -67,7 +67,7 @@ export class Technician<T> extends ConfigSource<T> {
             if(knownSource.ignoreIf?.()) {
                 continue;
             }
-            let readResult = await knownSource.source.read(key);
+            const readResult = await knownSource.source.read(key);
             // Skip any data blocks that do not exist.
             if(!readResult) {
                 continue;
@@ -179,7 +179,7 @@ export class Technician<T> extends ConfigSource<T> {
             if(knownSource.ignoreIf?.()) {
                 continue;
             }
-            let readResult = knownSource.source.readSync(key);
+            const readResult = knownSource.source.readSync(key);
             // Skip any data blocks that do not exist.
             if(!readResult) {
                 continue;

@@ -8,15 +8,17 @@
  * 
  * Note that, conversely, sync-only sources are completely compatible with async reads.
  */
-export class ConfigSource<T> {
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
+ export class ConfigSource<T> {
     /**
      * Reads a single config entity by key asynchronously, returning a data Buffer containing its contents.
      * If the read returns undefined, the value is considered to not exist in the source.
      * @param key The key of the secret to read.
      * @returns A Buffer containing the data associated with the key, or undefined it does not exist.
      */
-    public read(key: string): Promise<T | undefined> {
-        return this.read(key);
+    public async read(key: string): Promise<T | undefined> {
+        return this.readSync(key);
     }
 
     /**
@@ -36,7 +38,7 @@ export class ConfigSource<T> {
      */
     public async list(): Promise<string[]> {
         return this.listSync();
-    };
+    }
 
     /**
      * Reads a single config entity by key synchronously, returning a data Buffer containing its contents.
@@ -63,7 +65,7 @@ export class ConfigSource<T> {
      * This should provide all keys for the object returned by readAllSync().
      * @returns An array of strings containing all keys known to the config source. Should return an empty array if no keys are present.
      */
-    public　listSync(): string[] {
+    public listSync(): string[] {
         return [];
     }
 }

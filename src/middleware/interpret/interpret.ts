@@ -18,14 +18,14 @@ export class Interpret {
          * @param configSource The source to interpret.
          * @param encoding     The string encoding type to use. Default `utf8`.
          */
-        asString: (configSource: ConfigSource<Buffer>, encoding: SupportedEncoding = 'utf8') => new Interpreter(configSource, (entity: ConfigEntity<Buffer | undefined>) => entity.value?.toString(encoding)),
+        asString: (configSource: ConfigSource<Buffer>, encoding: SupportedEncoding = 'utf8'): Interpreter<Buffer, string> => new Interpreter(configSource, (entity: ConfigEntity<Buffer | undefined>) => entity.value?.toString(encoding)),
 
         /**
          * Interprets buffer values as booleans.
          * Returns false for 0x00, true for 0x01, and undefined for any other buffer contents.
          * @param configSource The source to interpret.
          */
-        asBool: (configSource: ConfigSource<Buffer>) => new Interpreter(configSource, (entity: ConfigEntity<Buffer | undefined>) => {
+        asBool: (configSource: ConfigSource<Buffer>): Interpreter<Buffer, boolean> => new Interpreter(configSource, (entity: ConfigEntity<Buffer | undefined>) => {
             switch(entity.value?.readUInt8()) {
                 case 0 : return false;
                 case 1 : return true;
@@ -40,7 +40,7 @@ export class Interpret {
          * @param configSource The source to interpret.
          * @param encoding     The number encoding to use. Default `int32le` or `int32be` based on `os.endianness()`.
          */
-        asNumber: (configSource: ConfigSource<Buffer>, encoding: SupportedNumberEncoding = 'int32') => new Interpreter(configSource, (entity: ConfigEntity<Buffer | undefined>) => {
+        asNumber: (configSource: ConfigSource<Buffer>, encoding: SupportedNumberEncoding = 'int32'): Interpreter<Buffer, number> => new Interpreter(configSource, (entity: ConfigEntity<Buffer | undefined>) => {
             const fullEncoding = /^.*?[lb]e$/i.test(encoding) || /^u?int8/.test(encoding) ? encoding : `${encoding}${os.endianness().toLowerCase()}`;
             // This is probably more sane than `rawEntity.data[Object.keys(rawEntity.data).find(key => key.toLowerCase() === `read${numType}`) ?? throw new TypeError(`[${numType}]`)]()`
             switch(fullEncoding) {
@@ -69,7 +69,7 @@ export class Interpret {
          * @param configSource The source to interpret.
          * @param encoding     The number encoding to use. Default `bigint64le` or `bigint64be` based on `os.endianness()`.
          */
-        asBigInt: (configSource: ConfigSource<Buffer>, encoding: SupportedBigIntEncoding = 'bigint64') => new Interpreter(configSource, (entity: ConfigEntity<Buffer | undefined>) => {
+        asBigInt: (configSource: ConfigSource<Buffer>, encoding: SupportedBigIntEncoding = 'bigint64'): Interpreter<Buffer, bigint> => new Interpreter(configSource, (entity: ConfigEntity<Buffer | undefined>) => {
             const fullEncoding = /^.*?[lb]e$/i.test(encoding) ? encoding : `${encoding}${os.endianness().toLowerCase()}`;
             switch(fullEncoding) {
                 case 'bigint64be' : return entity.value?.readBigInt64BE();
@@ -85,7 +85,7 @@ export class Interpret {
          * @param configSource The source to interpret.
          * @param encoding     The string encoding type to use. Default `utf8`.
          */
-        asJSON: (configSource: ConfigSource<Buffer>, encoding: SupportedEncoding = 'utf8') => new Interpreter<Buffer, JSONData>(configSource, (entity: ConfigEntity<Buffer | undefined>) => {
+        asJSON: (configSource: ConfigSource<Buffer>, encoding: SupportedEncoding = 'utf8'): Interpreter<Buffer, JSONData> => new Interpreter(configSource, (entity: ConfigEntity<Buffer | undefined>) => {
             const text = entity.value?.toString(encoding);
             try {
                 return text && JSON.parse(text);
@@ -101,7 +101,7 @@ export class Interpret {
          * @param configSource The source to interpret.
          * @param encoding     The string encoding type to use. Default `utf8`.
          */
-        asStringOrJSON: (configSource: ConfigSource<Buffer>, encoding: SupportedEncoding = 'utf8') => new Interpreter<Buffer, JSONData | string>(configSource, (entity: ConfigEntity<Buffer | undefined>) => {
+        asStringOrJSON: (configSource: ConfigSource<Buffer>, encoding: SupportedEncoding = 'utf8'): Interpreter<Buffer, JSONData | string> => new Interpreter(configSource, (entity: ConfigEntity<Buffer | undefined>) => {
             const text = entity.value?.toString(encoding);
             try {
                 return text && JSON.parse(text);
@@ -120,14 +120,14 @@ export class Interpret {
          * @param configSource The source to interpret.
          * @param encoding     The string encoding type to use. Default `utf8`.
          */
-        asBuffer: (configSource: ConfigSource<string>, encoding: SupportedEncoding = 'utf8') => new Interpreter(configSource, (entity: ConfigEntity<string | undefined>) => entity.value && Buffer.from(entity.value, encoding)),
+        asBuffer: (configSource: ConfigSource<string>, encoding: SupportedEncoding = 'utf8'): Interpreter<string, Buffer> => new Interpreter(configSource, (entity: ConfigEntity<string | undefined>) => entity.value ? Buffer.from(entity.value, encoding) : undefined),
 
         /**
          * Interprets string values as booleans.
          * Returns false for 'false', true for 'true', and undefined for any other contents.
          * @param configSource The source to interpret.
          */
-        asBool: (configSource: ConfigSource<string>) => new Interpreter(configSource, (entity: ConfigEntity<string | undefined>) => {
+        asBool: (configSource: ConfigSource<string>): Interpreter<string, boolean> => new Interpreter(configSource, (entity: ConfigEntity<string | undefined>) => {
             switch(entity.value) {
                 case 'false': return false;
                 case 'true' : return true;
@@ -138,16 +138,15 @@ export class Interpret {
         /**
          * Interprets string values as numbers via `parseFloat`.
          * @param configSource The source to interpret.
-         * @param encoding     The number encoding to use. Default `int32le` or `int32be` based on `os.endianness()`.
          */
-        asNumber: (configSource: ConfigSource<string>, encoding: SupportedNumberEncoding = 'int32') => new Interpreter(configSource, (entity: ConfigEntity<string | undefined>) => entity.value && parseFloat(entity.value)),
+        asNumber: (configSource: ConfigSource<string>): Interpreter<string, number> => new Interpreter(configSource, (entity: ConfigEntity<string | undefined>) => entity.value ? parseFloat(entity.value) : undefined),
 
 
         /**
          * Returns a JSON object as the entity contents, or undefined if the entity did not exist or was not valid JSON.
          * @param configSource The source to interpret.
          */
-        asJSON: (configSource: ConfigSource<string>) => new Interpreter<string, JSONData>(configSource, (entity: ConfigEntity<string | undefined>) => {
+        asJSON: (configSource: ConfigSource<string>): Interpreter<string, JSONData> => new Interpreter(configSource, (entity: ConfigEntity<string | undefined>) => {
             try {
                 return entity.value && JSON.parse(entity.value);
             }
@@ -161,7 +160,7 @@ export class Interpret {
          * This process is not as efficient as using more finely-tailored interpreters, but is provided for convenience.
          * @param configSource The source to interpret.
          */
-        asStringOrJSON: (configSource: ConfigSource<string>) => new Interpreter<string, JSONData>(configSource, (entity: ConfigEntity<string | undefined>) => {
+        asStringOrJSON: (configSource: ConfigSource<string>): Interpreter<string, JSONData | string> => new Interpreter(configSource, (entity: ConfigEntity<string | undefined>) => {
             try {
                 return entity.value && JSON.parse(entity.value);
             }
