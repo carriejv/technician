@@ -281,9 +281,9 @@ Sources are managed by reference. The exact `ConfigSource` passed in at creation
 
 ## Synchronous Options
 
-`TechnicianSync` is provided by this package for use with synchronous code. `TechnicianSync` can only use synchronous sources (`ConfigSourceSync`) and interpreters (`InterpreterSync`). This is not the recommended approach to using Technician, but is provided for compatability with purely sync code.
+`TechnicianSync` is provided by this package for use with synchronous code. `TechnicianSync` can only use synchronous sources (`ConfigSource`) and interpreters (`InterpreterSync`). This is not the recommended approach to using Technician, but is provided for compatability with purely sync code.
 
-`Technician` may utilize sync-only sources and interpreters, but `TechnicianSync` cannot use async components. A single config source may, however, implement both `ConfigSource` and `ConfigSourceSync` to provide methods of accessing config data to both variants of Technician.
+`Technician` may utilize sync-only sources and interpreters, but `TechnicianSync` cannot use async components. A single config source may, however, implement both `ConfigSource` and `ConfigSource` to provide methods of accessing config data to both variants of Technician.
 
 `TechnicianSync`'s API is otherwise identical to `Technician`.
 

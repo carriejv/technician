@@ -20,15 +20,11 @@ export class Technician<T> extends ConfigSource<T> {
     /** Array of known async entity sources. */
     private knownSources: ConfigSourceParams<T>[] = [];
 
-    /** Key alias map. */
-    private aliases: Map<string, string[]> = new Map();
-
     /**
      * Builds a new Technician instance.
      * @param configSource  The config source(s) to add. May be a ConfigSource object, an object containing a source and params,
      *                      or an array of these. A Technician instance may also be used as a ConfigSource for another Technician instance.
      * @param params        Params object. @see {@link TechnicianParams}.
-     * @constructor         Technician
      */
     public constructor(configSource: ConfigSourceArg<T>, private params?: TechnicianParams) {
         super();
@@ -48,9 +44,6 @@ export class Technician<T> extends ConfigSource<T> {
             return cacheItem.value;
         }
 
-        // Check if key is an alias.
-        const sourceKeys = this.aliases.get(key) ?? [key];
-
         // Initialize result buffer.
         let resultCandidate: CachedConfigEntity<T> | undefined;
 
@@ -63,36 +56,34 @@ export class Technician<T> extends ConfigSource<T> {
         // If the key is an alias, all potential subkeys will be checked.
         let runningPriority = cacheItem?.priority;
         let isNewResult;
-        for(const sourceKey of sourceKeys) {
-            for(const knownSource of this.knownSources) {
-                // Skip any source that doesn't exceed a currently-valid priority
-                const sourcePriority = knownSource.priority ?? 0;
-                if(runningPriority !== undefined && runningPriority > sourcePriority) {
-                    continue;
-                }
-                // Skip any source with an ignoreIf that evaluates to true
-                if(knownSource.ignoreIf?.()) {
-                    continue;
-                }
-                let readResult = await knownSource.source.read(sourceKey);
-                // Skip any data blocks that do not exist.
-                if(!readResult) {
-                    continue;
-                }
-                // The candidate is valid.
-                isNewResult = true;
-                runningPriority = knownSource.priority;
-                // Calculate cache length
-                const cacheLength = knownSource.cacheFor ?? this.params?.defaultCacheLength;
-                // Update result candidate
-                resultCandidate = {
-                    key,
-                    value: readResult,
-                    priority: sourcePriority,
-                    source: knownSource.source,
-                    cacheUntil: cacheLength ? Date.now() + cacheLength : Infinity
-                };
+        for(const knownSource of this.knownSources) {
+            // Skip any source that doesn't exceed a currently-valid priority
+            const sourcePriority = knownSource.priority ?? 0;
+            if(runningPriority !== undefined && runningPriority > sourcePriority) {
+                continue;
             }
+            // Skip any source with an ignoreIf that evaluates to true
+            if(knownSource.ignoreIf?.()) {
+                continue;
+            }
+            let readResult = await knownSource.source.read(key);
+            // Skip any data blocks that do not exist.
+            if(!readResult) {
+                continue;
+            }
+            // The candidate is valid.
+            isNewResult = true;
+            runningPriority = knownSource.priority;
+            // Calculate cache length
+            const cacheLength = knownSource.cacheFor ?? this.params?.defaultCacheLength;
+            // Update result candidate
+            resultCandidate = {
+                key,
+                value: readResult,
+                priority: sourcePriority,
+                source: knownSource.source,
+                cacheUntil: cacheLength ? Date.now() + cacheLength : Infinity
+            };
         }
 
         // Cache the value if it doesn't exist or has been replaced by a higher-priority result.
@@ -140,7 +131,7 @@ export class Technician<T> extends ConfigSource<T> {
      */
     public async list(): Promise<string[]> {
         // List all keys for all sources. Start with aliases created in Technician itself.
-        let keys: string[] = Array.from(this.aliases.keys());
+        let keys: string[] = [];
         for(const knownSource of this.knownSources) {
             keys = keys.concat(await knownSource.source.list())
         }
@@ -165,9 +156,6 @@ export class Technician<T> extends ConfigSource<T> {
             return cacheItem.value;
         }
 
-        // Check if key is an alias.
-        const sourceKeys = this.aliases.get(key) ?? [key];
-
         // Initialize result buffer.
         let resultCandidate: CachedConfigEntity<T> | undefined;
 
@@ -180,36 +168,34 @@ export class Technician<T> extends ConfigSource<T> {
         // If the key is an alias, all potential subkeys will be checked.
         let runningPriority = cacheItem?.priority;
         let isNewResult;
-        for(const sourceKey of sourceKeys) {
-            for(const knownSource of this.knownSources) {
-                // Skip any source that doesn't exceed a currently-valid priority
-                const sourcePriority = knownSource.priority ?? 0;
-                if(runningPriority !== undefined && runningPriority > sourcePriority) {
-                    continue;
-                }
-                // Skip any source with an ignoreIf that evaluates to true
-                if(knownSource.ignoreIf?.()) {
-                    continue;
-                }
-                let readResult = knownSource.source.readSync(sourceKey);
-                // Skip any data blocks that do not exist.
-                if(!readResult) {
-                    continue;
-                }
-                // The candidate is valid.
-                isNewResult = true;
-                runningPriority = knownSource.priority;
-                // Calculate cache length
-                const cacheLength = knownSource.cacheFor ?? this.params?.defaultCacheLength;
-                // Update result candidate
-                resultCandidate = {
-                    key,
-                    value: readResult,
-                    priority: sourcePriority,
-                    source: knownSource.source,
-                    cacheUntil: cacheLength ? Date.now() + cacheLength : Infinity
-                };
+        for(const knownSource of this.knownSources) {
+            // Skip any source that doesn't exceed a currently-valid priority
+            const sourcePriority = knownSource.priority ?? 0;
+            if(runningPriority !== undefined && runningPriority > sourcePriority) {
+                continue;
             }
+            // Skip any source with an ignoreIf that evaluates to true
+            if(knownSource.ignoreIf?.()) {
+                continue;
+            }
+            let readResult = knownSource.source.readSync(key);
+            // Skip any data blocks that do not exist.
+            if(!readResult) {
+                continue;
+            }
+            // The candidate is valid.
+            isNewResult = true;
+            runningPriority = knownSource.priority;
+            // Calculate cache length
+            const cacheLength = knownSource.cacheFor ?? this.params?.defaultCacheLength;
+            // Update result candidate
+            resultCandidate = {
+                key,
+                value: readResult,
+                priority: sourcePriority,
+                source: knownSource.source,
+                cacheUntil: cacheLength ? Date.now() + cacheLength : Infinity
+            };
         }
 
         // Cache the value if it doesn't exist or has been replaced by a higher-priority result.
@@ -259,28 +245,13 @@ export class Technician<T> extends ConfigSource<T> {
      */
     public listSync(): string[] {
         // List all keys for all sources. Start with aliases created in Technician itself.
-        let keys: string[] = Array.from(this.aliases.keys());
+        let keys: string[] = [];
         for(const knownSource of this.knownSources) {
             keys = keys.concat(knownSource.source.listSync())
         }
 
         // Dedupe keys via Set.
         return Array.from(new Set(keys));
-    }
-
-    /**
-     * Creates an alias key. An alias key can match any number of other keys.
-     * When read, the alias will be treated as a single key, reading from any underlying keys
-     * and picking the highest priority result from the entire set.
-     * This can be used to create a single config entity from multiple sources,
-     * such as a `id_rsa.pub` file and an `RSA_PUBKEY` env var.
-     * The alias does not prevent directly reading a single underlying key.
-     * The alias is a distinct entity in the cache. Reading an alias will not use cached results from previous reads of specific keys.
-     * @param aliasKey The alias key to create.
-     * @param sourceKeys The source keys to alias.
-     */
-    public alias(aliasKey: string, sourceKeys: string[]): void {
-        this.aliases.set(aliasKey, sourceKeys);
     }
 
     /**

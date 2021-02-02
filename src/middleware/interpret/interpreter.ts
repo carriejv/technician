@@ -1,9 +1,9 @@
-import { ConfigEntity } from '../types/entity-types';
-import { InterpreterFunctionSet } from '../types/param-types';
-import { ConfigSource } from '../types/source-types';
+import { ConfigEntity } from '../../types/entity-types';
+import { InterpreterFunctionSet } from '../../types/param-types';
+import { ConfigSource } from '../../types/source-types';
 
-/** Interpreter is a middleware ConfigSource that does pre-cache work on raw config values returned from low-level sources. */
-export class Interpreter<T, U> extends ConfigSource<U> {
+/** Interpreter is a middleware ConfigSource that does pre-cache work on raw config values returned from low-level sources, optionally returning them as a new type. */
+export class Interpreter<T, U = T> extends ConfigSource<U> {
     
     /** Interpreter functions in use, as an InterpreterFunctionSet object for (a)sync hybrid support. */
     private interpreterFunction: InterpreterFunctionSet<T, U>;
@@ -16,7 +16,6 @@ export class Interpreter<T, U> extends ConfigSource<U> {
      *                            Interpreters can be used to perform any expensive operations necessary to prepared config values for use.
      *                            If an async interpreter is required, an object containing both an `async` and `sync` variant of the interpreter may be passed.
      *                            The `sync` property may be omitted, but this will cause the Interpreter to be treated as async-only and ignored by `readSync`, etc.
-     * @constructor               Interpreter
      */
     public constructor(private configSource: ConfigSource<T>, interpreterFunction: InterpreterFunctionSet<T, U> | ((ConfigEntity: ConfigEntity<T | undefined>) => U | undefined)) {
         super();
@@ -70,7 +69,7 @@ export class Interpreter<T, U> extends ConfigSource<U> {
 
     /** 
      * Reads the contents of the underlying source and runs the interpreter function on it.
-     * @see {@link ConfigSourceSync#readSync}
+     * @see {@link ConfigSource#readSync}
      */
     public readSync(key: string): U | undefined {
         return this.interpreterFunction.sync?.({
@@ -82,7 +81,7 @@ export class Interpreter<T, U> extends ConfigSource<U> {
 
     /** 
      * Reads all contents of the underlying source and runs the interpreter function on them.
-     * @see {@link ConfigSourceSync#readAllSync}
+     * @see {@link ConfigSource#readAllSync}
      */
     public readAllSync(): {[key: string]: U | undefined} {
         const rawValues = this.configSource.readAllSync();
@@ -99,7 +98,7 @@ export class Interpreter<T, U> extends ConfigSource<U> {
 
     /** 
      * Lists all keys in the underlying source.
-     * @see {@link ConfigSourceSync#listSync}
+     * @see {@link ConfigSource#listSync}
      */
     public listSync(): string[] {
         return this.configSource.listSync();

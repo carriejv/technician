@@ -19,26 +19,25 @@ import {
 } from './technician/technician';
 
 import {
-    TechnicianSync
-} from './technician/technician-sync';
-
-import {
-    DefaultInterpreters
-} from './interpreter/default-interpreters';
-
-import {
-    DefaultInterpretersSync
-} from './interpreter/interpreter';
+    ManualConfigSource
+} from './config-source/manual-config-source';
 
 import {
     ConfigNotFoundError
 } from './error/config-not-found-error';
 
 import {
-    ConfigSource,
-    ConfigSourceSync,
-    Interpreter,
-    InterpreterSync
+    DefaultInterpreters
+} from './middleware/interpret/default-interpreters';
+
+import {
+    Interpreter
+} from './middleware/interpret/interpreter';
+
+
+
+import {
+    ConfigSource
 } from './types/source-types';
 
 import {
@@ -58,7 +57,7 @@ export {
     DefaultInterpretersSync as InterpretSync,
     ConfigNotFoundError,
     ConfigSource,
-    ConfigSourceSync,
+    ConfigSource,
     Interpreter,
     InterpreterSync,
     JSONData,

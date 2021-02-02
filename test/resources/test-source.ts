@@ -1,13 +1,12 @@
-import { ConfigSource, ConfigSourceSync } from '../../src';
+import { ConfigSource, ConfigSource } from '../../src';
 
 /** Super simple ConfigSource for testing. */
-export class TestSource implements ConfigSource<Buffer>, ConfigSourceSync<Buffer> {
+export class TestSource implements ConfigSource<Buffer>, ConfigSource<Buffer> {
 
     /**
      * Builds a new TestSource.
      * @param value The value to return from all reads.
      * @param keys Array of keys to return from readAll, list.
-     * @constructor TestSource
      */
     constructor(
         private value: Buffer | undefined,
@@ -35,7 +34,7 @@ export class TestSource implements ConfigSource<Buffer>, ConfigSourceSync<Buffer
         return this.keys;
     }
 
-    /** @see {@link ConfigSourceSync#readSync} */
+    /** @see {@link ConfigSource#readSync} */
     public readSync(key: string): Buffer | undefined {
         if(this.keys.includes(key)) {
             return this.value;
@@ -43,7 +42,7 @@ export class TestSource implements ConfigSource<Buffer>, ConfigSourceSync<Buffer
         return undefined;
     }
 
-    /** @see {@link ConfigSourceSync#readAllSync} */
+    /** @see {@link ConfigSource#readAllSync} */
     public readAllSync(): {[key: string]: Buffer | undefined} {
         const obj: {[key: string]: Buffer | undefined} = {};
         for(const key of this.keys) {
@@ -52,25 +51,24 @@ export class TestSource implements ConfigSource<Buffer>, ConfigSourceSync<Buffer
         return obj;
     }
 
-    /** @see {@link ConfigSourceSync#listSync} */
+    /** @see {@link ConfigSource#listSync} */
     public listSync(): string[] {
         return this.keys;
     }
 }
 
 /** Sync-only test source. */
-export class TestSourceSync implements ConfigSourceSync<Buffer> {
+export class TestSourceSync implements ConfigSource<Buffer> {
     /**
      * Builds a new TestSourceSync.
      * @param value The value to return from all reads.
-     * @param keys Array of keys to return from readAll, list.
-     * @constructor TestSourceSync
+     * @param keys Array of keys to return from readAll, list.=
      */
     constructor(
         private value: Buffer | undefined,
         private keys: string[]) {}
 
-    /** @see {@link ConfigSourceSync#readSync} */
+    /** @see {@link ConfigSource#readSync} */
     public readSync(key: string): Buffer | undefined {
         if(this.keys.includes(key)) {
             return this.value;
@@ -78,7 +76,7 @@ export class TestSourceSync implements ConfigSourceSync<Buffer> {
         return undefined;
     }
 
-    /** @see {@link ConfigSourceSync#readAllSync} */
+    /** @see {@link ConfigSource#readAllSync} */
     public readAllSync(): {[key: string]: Buffer | undefined} {
         const obj: {[key: string]: Buffer | undefined} = {};
         for(const key of this.keys) {
@@ -87,7 +85,7 @@ export class TestSourceSync implements ConfigSourceSync<Buffer> {
         return obj;
     }
 
-    /** @see {@link ConfigSourceSync#listSync} */
+    /** @see {@link ConfigSource#listSync} */
     public listSync(): string[] {
         return this.keys;
     }

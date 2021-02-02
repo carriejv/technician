@@ -1,17 +1,17 @@
 import * as os from 'os';
 import { Interpreter } from './interpreter';
-import { ConfigEntity } from '../types/entity-types';
-import { ConfigSource } from '../types/source-types';
-import { JSONData, SupportedBigIntEncoding, SupportedEncoding, SupportedNumberEncoding } from '../types/util-types';
+import { ConfigEntity } from '../../types/entity-types';
+import { ConfigSource } from '../../types/source-types';
+import { JSONData, SupportedBigIntEncoding, SupportedEncoding, SupportedNumberEncoding } from '../../types/util-types';
 
 /** 
- * Utility class containing ready-made Interpreter builders.
+ * Semantic API layer for easily building common Interpreters.
  * This class is designed to be extensible by external interpreter packages.
  */
 export class Interpret { 
 
     /** Contains interpreters for mapping from Buffer to other common types. */
-    public buffer = {
+    public static buffer = {
 
         /**
          * Interprets buffer values as strings.
@@ -114,7 +114,7 @@ export class Interpret {
     };
 
     /** Contains interpreters for mapping from string to other common types. */
-    public string = {
+    public static string = {
         /**
          * Interprets string values as buffers.
          * @param configSource The source to interpret.
