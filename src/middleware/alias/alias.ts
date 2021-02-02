@@ -1,5 +1,5 @@
-import { Aliaser } from "./aliaser";
-import { ConfigSource } from "../../types/source-types";
+import { Aliaser } from './aliaser';
+import { ConfigSource } from '../../config-source/config-source';
 
 /** Semantic API layer for building Aliasers. */
 export class Alias {

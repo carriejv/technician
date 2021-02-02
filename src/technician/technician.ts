@@ -1,7 +1,8 @@
 import { ConfigNotFoundError } from '../error/config-not-found-error';
 import { CachedConfigEntity } from '../types/entity-types';
 import { TechnicianParams } from '../types/param-types';
-import { ConfigSource, ConfigSourceArg, ConfigSourceParams } from '../types/source-types';
+import { ConfigSource } from '../config-source/config-source';
+import { ConfigSourceArg, ConfigSourceParams } from '../types/param-types';
 import { TechnicianUtil } from '../util/technician-util';
 
 /** 

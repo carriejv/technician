@@ -19,6 +19,10 @@ import {
 } from './technician/technician';
 
 import {
+    ConfigSource
+} from './config-source/config-source';
+
+import {
     ManualConfigSource
 } from './config-source/manual-config-source';
 
@@ -27,18 +31,20 @@ import {
 } from './error/config-not-found-error';
 
 import {
-    DefaultInterpreters
-} from './middleware/interpret/default-interpreters';
+    Alias
+} from './middleware/alias/alias';
+
+import {
+    Aliaser
+} from './middleware/alias/aliaser';
+
+import {
+    Interpret
+} from './middleware/interpret/interpret';
 
 import {
     Interpreter
 } from './middleware/interpret/interpreter';
-
-
-
-import {
-    ConfigSource
-} from './types/source-types';
 
 import {
     JSONData,
@@ -50,16 +56,13 @@ import {
 
 export {
     Technician,
-    TechnicianSync,
-    DefaultInterpreters,
-    DefaultInterpreters as Interpret,
-    DefaultInterpretersSync,
-    DefaultInterpretersSync as InterpretSync,
+    ConfigSource,
+    ManualConfigSource,
     ConfigNotFoundError,
-    ConfigSource,
-    ConfigSource,
+    Alias,
+    Aliaser,
+    Interpret,
     Interpreter,
-    InterpreterSync,
     JSONData,
     JSONPrimitive,
     SupportedEncoding,

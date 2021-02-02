@@ -1,4 +1,4 @@
-import { ConfigSource } from "../../types/source-types";
+import { ConfigSource } from '../../config-source/config-source';
 
 /** Aliaser is a middleware ConfigSource that creates key aliases. */
 export class Aliaser<T> extends ConfigSource<T> {

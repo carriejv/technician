@@ -1,4 +1,4 @@
-import { ConfigSource } from '../types/source-types';
+import { ConfigSource } from './config-source';
 
 /**
  * A ConfigSource for building a manual key/value map.

@@ -67,18 +67,3 @@ export class ConfigSource<T> {
         return [];
     }
 }
-
-/** Type used by Technician to store a ConfigSource and related config. */
-export interface ConfigSourceParams<T> {
-    /** The config source. */
-    source: ConfigSource<T>,
-    /** The priority of the source. Highest number wins when multiple sources provide the same config key. */
-    priority?: number,
-    /** Default cache length in ms for values retrieved from this source. Used in place of Technician default if set. */
-    cacheFor?: number,
-    /** If set, the config source is ignored whenever the function set returns true. */
-    ignoreIf?: () => boolean
-}
-
-/** Shorthand meta-type for ConfigSource-like args accepted by Technician. */
-export type ConfigSourceArg<T> = ConfigSource<T> | ConfigSourceParams<T> | (ConfigSource<T> | ConfigSourceParams<T>)[];

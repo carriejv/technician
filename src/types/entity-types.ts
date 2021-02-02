@@ -1,4 +1,4 @@
-import { ConfigSource } from './source-types';
+import { ConfigSource } from '../config-source/config-source';
 
 /** Defines info about an entity being read and may be passed to middleware. */
 export interface ConfigEntity<T> {

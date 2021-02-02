@@ -1,4 +1,5 @@
-import { ConfigSource, ConfigSourceParams} from '../types/source-types';
+import { ConfigSource } from '../config-source/config-source';
+import { ConfigSourceParams} from '../types/param-types';
 
 /** Utility functions used throughout Technician */
 export class TechnicianUtil {

@@ -1,6 +1,6 @@
 import { ConfigEntity } from '../../types/entity-types';
 import { InterpreterFunctionSet } from '../../types/param-types';
-import { ConfigSource } from '../../types/source-types';
+import { ConfigSource } from '../../config-source/config-source';
 
 /** Interpreter is a middleware ConfigSource that does pre-cache work on raw config values returned from low-level sources, optionally returning them as a new type. */
 export class Interpreter<T, U = T> extends ConfigSource<U> {
