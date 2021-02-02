@@ -12,9 +12,9 @@ export class Aliaser<T> extends ConfigSource<T> {
      * @param passthrough   Passthrough mode. May be `none` -> only explicitly aliased keys are available for read,
      *                      `partial` -> Keys without aliases are available via the key(s) used by the root source, but aliased keys are only available via their alias, or
      *                      `full` -> All values remain available via their source key(s), even if an alias is created for them.
-     *                      Default `partial`
+     *                      Default `full`
      */
-    public constructor(private configSource: ConfigSource<T>, private aliasMap: {[key: string]: string}, private passthrough: 'full' | 'partial' | 'none' = 'partial') {
+    public constructor(private configSource: ConfigSource<T>, private aliasMap: {[key: string]: string}, private passthrough: 'full' | 'partial' | 'none' = 'full') {
         super();
         this.aliasedKeys = Object.values(aliasMap);
     }
@@ -30,10 +30,10 @@ export class Aliaser<T> extends ConfigSource<T> {
                 return aliasedKey && await this.configSource.read(aliasedKey) || await this.configSource.read(key); 
             case 'partial':
                 if(this.aliasedKeys.includes(key)) {
-                    return aliasedKey ? await this.configSource.read(aliasedKey) : undefined;
+                    return undefined; 
                 }
                 else {
-                    return await this.configSource.read(key); 
+                    return aliasedKey ? await this.configSource.read(aliasedKey) : await this.configSource.read(key);
                 }
             case 'none':
                 // Typescript chokes on the type check here if written as isAlias && ... for some reason.
@@ -82,8 +82,13 @@ export class Aliaser<T> extends ConfigSource<T> {
         switch(this.passthrough) {
             case 'full':
                 return aliasedKey && this.configSource.readSync(aliasedKey) || this.configSource.readSync(key); 
-            case 'partial':
-                return aliasedKey ? this.configSource.readSync(aliasedKey) : this.configSource.readSync(key);
+                case 'partial':
+                    if(this.aliasedKeys.includes(key)) {
+                        return undefined; 
+                    }
+                    else {
+                        return aliasedKey ? this.configSource.readSync(aliasedKey) : this.configSource.readSync(key);
+                    }
             case 'none':
                 // Typescript chokes on the type check here if written as isAlias && ... for some reason.
                 return aliasedKey ? this.configSource.readSync(aliasedKey) : undefined;
@@ -116,7 +121,7 @@ export class Aliaser<T> extends ConfigSource<T> {
                 return [...sourceList, ...aliasList];
             case 'partial':
                 sourceList = this.configSource.listSync();
-                return [...sourceList.filter(x => !aliasList.includes(x)), ...Object.keys(this.aliasMap)];
+                return [...sourceList.filter(x => !this.aliasedKeys.includes(x)), ...aliasList];
             case 'none':
                 return aliasList;
         }

@@ -13,9 +13,9 @@ export class Interpreter<T, U = T> extends ConfigSource<U> {
      * @param configSource        The config source to interpret.
      * @param interpreterFunction The interpreter function used to map input type T to output type U.
      *                            Interpretation is only performed once, and the result is cached instead of the input from the raw config source.
-     *                            Interpreters can be used to perform any expensive operations necessary to prepared config values for use.
+     *                            Interpreters can be used to perform any expensive operations necessary to prepare config values for use.
      *                            If an async interpreter is required, an object containing both an `async` and `sync` variant of the interpreter may be passed.
-     *                            The `sync` property may be omitted, but this will cause the Interpreter to be treated as async-only and ignored by `readSync`, etc.
+     *                            The `sync` property may be omitted, but this will cause the Interpreter and its underlying source to be treated as async-only and ignored by `readSync`, etc.
      */
     public constructor(private configSource: ConfigSource<T>, interpreterFunction: InterpreterFunctionSet<T, U> | ((ConfigEntity: ConfigEntity<T | undefined>) => U | undefined)) {
         super();
@@ -26,6 +26,8 @@ export class Interpreter<T, U = T> extends ConfigSource<U> {
             };
         }
         else {
+            // Calling a sync interpreter from async is fine.
+            interpreterFunction.async = interpreterFunction.async ?? interpreterFunction.sync;
             this.interpreterFunction = interpreterFunction;
         }
     }

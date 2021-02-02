@@ -8,7 +8,7 @@ import { JSONData, SupportedBigIntEncoding, SupportedEncoding, SupportedNumberEn
  * Semantic API layer for easily building common Interpreters.
  * This class is designed to be extensible by external interpreter packages.
  */
-export class Interpret { 
+export class Interpret {
 
     /** Contains interpreters for mapping from Buffer to other common types. */
     public static buffer = {

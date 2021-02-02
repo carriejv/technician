@@ -30,7 +30,7 @@ export class Technician<T> extends ConfigSource<T> {
     public constructor(configSource?: ConfigSourceArg<T>, private params?: TechnicianParams) {
         super();
         if(configSource) {
-            this.addSource(configSource);
+            this.setSource(configSource);
         }
     }
 
@@ -71,7 +71,7 @@ export class Technician<T> extends ConfigSource<T> {
             }
             const readResult = await knownSource.source.read(key);
             // Skip any data blocks that do not exist.
-            if(!readResult) {
+            if(readResult === undefined) {
                 continue;
             }
             // The candidate is valid.
@@ -183,7 +183,7 @@ export class Technician<T> extends ConfigSource<T> {
             }
             const readResult = knownSource.source.readSync(key);
             // Skip any data blocks that do not exist.
-            if(!readResult) {
+            if(readResult === undefined) {
                 continue;
             }
             // The candidate is valid.
@@ -283,12 +283,12 @@ export class Technician<T> extends ConfigSource<T> {
 
     /**
      * Adds ConfigSource(s) to Technician or edits existing sources.
-     * A given ConfigSource instance may only be added once, so it will be edited in place
-     * if passed into `addSource` again.
+     * A given ConfigSource instance may only be added once, so existing sources 
+     * will be edited in place if passed into `setSource` again.
      * @param configSource  The config source(s) to add. May be a ConfigSource object, an object containing a source and params,
      *                      or an array of these. A Technician instance may also be used as a ConfigSource for another Technician instance.
      */
-    public addSource(configSource: ConfigSourceArg<T>): void {
+    public setSource(configSource: ConfigSourceArg<T>): void {
         // Wrap singular sources in array.
         if(!Array.isArray(configSource)) {
             configSource = [configSource as ConfigSource<T> | ConfigSourceParams<T>];
@@ -310,7 +310,7 @@ export class Technician<T> extends ConfigSource<T> {
     /**
      * Delete ConfigSource(s) from Technician.
      * @param configSource  The config source(s) to delete. Sources are managed by reference, so the ConfigSource passed in
-     *                      must be the same object passed in to addSource.
+     *                      must be the same object passed in to setSource.
      *                      If a {source, priority} object was passed in, the only the source should be passed in to deleteSource.
      */
     public deleteSource(configSource: ConfigSource<T> | ConfigSource<T>[]): void {

@@ -38,7 +38,7 @@ const technician = new Technician(Interpret.asText('utf8'));
 const envSource = new EnvConfigSource();
 
 // Add the source to Technician. Now, all of its values can be accessed.
-technician.addSource(envSource);
+technician.setSource(envSource);
 const value = await technician.read('MY_ENV_VAR');
 
 // TypeScript will automatically infer value's type!
@@ -64,7 +64,7 @@ const envSource = new EnvConfigSource();
 const filesystemSource = new FSConfigSource('./config/dir/');
 
 // Add the sources.
-technician.addSource([{
+technician.setSource([{
     source: envSource,
     ignoreIf: () => process.env.NODE_ENV === 'production'
 }, filesystemSource]);
@@ -85,7 +85,7 @@ const envSource = new EnvConfigSource();
 const filesystemSource = new FSConfigSource('~/.ssh/*');
 
 // Add the sources.
-technician.addSource([envSource, filesystemSource]);
+technician.setSource([envSource, filesystemSource]);
 
 // Create an alias to link related config.
 // The default keys used are defined by each config source.
@@ -114,7 +114,7 @@ const filesystemSource = new FSConfigSource('/etc/ssl/certs');
 
 // Sources with higher priority will be used over those with lower priority.
 // By default, sources have a priority of 0 and cache forever.
-technician.addSource([
+technician.setSource([
     {
         source: envSource,
         priority: 1,
@@ -163,13 +163,13 @@ The return type of your interpreter determines the return type of your `read()` 
 ### Narrow Typing
 ```ts
 const techStrings = new Technician(Interpret.asText());
-techStrings.addSource(someStringSource);
+techStrings.setSource(someStringSource);
 const stringValue = techStrings.read('string-key');
 // Typescript knows exactly what this value is.
 typeof stringValue === 'string'
 
 const techNumbers = new Technician(Interpret.asNumber());
-techNumbers.addSource(someNumbersource);
+techNumbers.setSource(someNumbersource);
 const numberValue = techNumbers.read('number-key');
 // ... and this one, because you read it from a different instance.
 typeof numberValue === 'number'
@@ -183,8 +183,8 @@ const technician = new Technician(async configData: Promise<number | string> => 
     }
     return await Interpret.asText()(configData);
 });
-technician.addSource(someStringSource);
-technician.addSource(someNumberSource);
+technician.setSource(someStringSource);
+technician.setSource(someNumberSource);
 
 const stringValue = techStrings.read('string-key');
 const numberValue = techNumbers.read('number-key');
@@ -275,7 +275,7 @@ If you intend to return an object with the properties `cacheFor` and `value` fro
 
 ### Editing Existing Sources
 
-If you want to change the priority or cache policy of a previously set source, you can simply pass it back in to `addSource()` with the new config. You can also `deleteSource()` to remove it completely.
+If you want to change the priority or cache policy of a previously set source, you can simply pass it back in to `setSource()` with the new config. You can also `deleteSource()` to remove it completely.
 
 Sources are managed by reference. The exact `ConfigSource` passed in at creation should be passed in to edit or delete it.
 
