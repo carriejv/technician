@@ -27,9 +27,11 @@ export class Technician<T> extends ConfigSource<T> {
      *                      or an array of these. A Technician instance may also be used as a ConfigSource for another Technician instance.
      * @param params        Params object. @see {@link TechnicianParams}.
      */
-    public constructor(configSource: ConfigSourceArg<T>, private params?: TechnicianParams) {
+    public constructor(configSource?: ConfigSourceArg<T>, private params?: TechnicianParams) {
         super();
-        this.addSource(configSource);
+        if(configSource) {
+            this.addSource(configSource);
+        }
     }
 
     /**
