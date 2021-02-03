@@ -104,29 +104,9 @@ describe('Technician', () => {
             expect(result).to.equal(VALUE_2);
         });
 
-        it('should read a single config value from the cache without cacheRespectsPriority.', async () => {
+        it('should read from a higher-priority source instead of the cache.', async () => {
             // Build and configure a Technician instance.
-            const tech = new Technician(TEST_SOURCE_1);
-
-            // Mock a cache entry
-            (tech as any).entityCache.set('only1', {
-                key: 'only1',
-                value: VALUE_CACHE,
-                source: TEST_SOURCE_1,
-                cacheUntil: Infinity,
-                priority: 0
-            });
-
-            // Test
-            const result = await tech.read('only1');
-
-            // Assertions
-            expect(result).to.equal(VALUE_CACHE);
-        });
-
-        it('should read from a higher-priority source instead of the cache with cacheRespectsPriority.', async () => {
-            // Build and configure a Technician instance.
-            const tech = new Technician({source: TEST_SOURCE_1, priority: 99}, {cacheRespectsPriority: true});
+            const tech = new Technician({source: TEST_SOURCE_1, priority: 99});
 
             // Mock a cache entry
             (tech as any).entityCache.set('only1', {
@@ -144,9 +124,29 @@ describe('Technician', () => {
             expect(result).to.equal(VALUE_1);
         });
 
-        it('should return a cached value instead of reading from a lower-priority source instead of the cache with cacheRespectsPriority.', async () => {
+        it('should return a cached value instead of reading from a lower-priority source.', async () => {
             // Build and configure a Technician instance.
-            const tech = new Technician({source: TEST_SOURCE_1, priority: -99}, {cacheRespectsPriority: true});
+            const tech = new Technician({source: TEST_SOURCE_1, priority: -99});
+
+            // Mock a cache entry
+            (tech as any).entityCache.set('only1', {
+                key: 'only1',
+                value: VALUE_CACHE,
+                source: TEST_SOURCE_1,
+                cacheUntil: Infinity,
+                priority: 0
+            });
+
+            // Test
+            const result = await tech.read('only1');
+
+            // Assertions
+            expect(result).to.equal(VALUE_CACHE);
+        });
+
+        it('should read a single config value from the cache with cacheIgnoresPriority.', async () => {
+            // Build and configure a Technician instance.
+            const tech = new Technician(TEST_SOURCE_1, {cacheIgnoresPriority: true});
 
             // Mock a cache entry
             (tech as any).entityCache.set('only1', {
@@ -166,7 +166,7 @@ describe('Technician', () => {
 
         it('should read from source if a cached value is expired.', async () => {
             // Build and configure a Technician instance.
-            const tech = new Technician({source: TEST_SOURCE_1, priority: 99}, {cacheRespectsPriority: true});
+            const tech = new Technician({source: TEST_SOURCE_1, priority: 99});
 
             // Mock a cache entry
             (tech as any).entityCache.set('only1', {
@@ -371,29 +371,9 @@ describe('Technician', () => {
             expect(result).to.equal(VALUE_2);
         });
 
-        it('should read a single config value from the cache without cacheRespectsPriority.', () => {
+        it('should read from a higher-priority source instead of the cache.', () => {
             // Build and configure a Technician instance.
-            const tech = new Technician(TEST_SOURCE_1);
-
-            // Mock a cache entry
-            (tech as any).entityCache.set('only1', {
-                key: 'only1',
-                value: VALUE_CACHE,
-                source: TEST_SOURCE_1,
-                cacheUntil: Infinity,
-                priority: 0
-            });
-
-            // Test
-            const result = tech.readSync('only1');
-
-            // Assertions
-            expect(result).to.equal(VALUE_CACHE);
-        });
-
-        it('should read from a higher-priority source instead of the cache with cacheRespectsPriority.', () => {
-            // Build and configure a Technician instance.
-            const tech = new Technician({source: TEST_SOURCE_1, priority: 99}, {cacheRespectsPriority: true});
+            const tech = new Technician({source: TEST_SOURCE_1, priority: 99});
 
             // Mock a cache entry
             (tech as any).entityCache.set('only1', {
@@ -411,9 +391,29 @@ describe('Technician', () => {
             expect(result).to.equal(VALUE_1);
         });
 
-        it('should return a cached value instead of reading from a lower-priority source instead of the cache with cacheRespectsPriority.', () => {
+        it('should return a cached value instead of reading from a lower-priority source.', () => {
             // Build and configure a Technician instance.
-            const tech = new Technician({source: TEST_SOURCE_1, priority: -99}, {cacheRespectsPriority: true});
+            const tech = new Technician({source: TEST_SOURCE_1, priority: -99});
+
+            // Mock a cache entry
+            (tech as any).entityCache.set('only1', {
+                key: 'only1',
+                value: VALUE_CACHE,
+                source: TEST_SOURCE_1,
+                cacheUntil: Infinity,
+                priority: 0
+            });
+
+            // Test
+            const result = tech.readSync('only1');
+
+            // Assertions
+            expect(result).to.equal(VALUE_CACHE);
+        });
+
+        it('should read a single config value from the cache with cacheIgnoresPriority.', () => {
+            // Build and configure a Technician instance.
+            const tech = new Technician(TEST_SOURCE_1, {cacheIgnoresPriority: true});
 
             // Mock a cache entry
             (tech as any).entityCache.set('only1', {
@@ -433,7 +433,7 @@ describe('Technician', () => {
 
         it('should read from source if a cached value is expired.', async () => {
             // Build and configure a Technician instance.
-            const tech = new Technician({source: TEST_SOURCE_1, priority: 99}, {cacheRespectsPriority: true});
+            const tech = new Technician({source: TEST_SOURCE_1, priority: 99});
 
             // Mock a cache entry
             (tech as any).entityCache.set('only1', {
@@ -690,13 +690,13 @@ describe('Technician', () => {
 
     });
 
-    describe('#deleteSource', () => {
+    describe('#unsetSource', () => {
 
         it('should delete a config source', async () => {
             // Build and configure a Technician instance.
             const tech = new Technician();
             tech.setSource([TEST_SOURCE_1, TEST_SOURCE_2]);
-            tech.deleteSource(TEST_SOURCE_1);
+            tech.unsetSource(TEST_SOURCE_1);
 
             // Assertions
             expect((tech as any).knownSources.filter((x: ConfigSourceParams<any>) => x.source === TEST_SOURCE_1).length).to.equal(0);
@@ -707,7 +707,7 @@ describe('Technician', () => {
             // Build and configure a Technician instance.
             const tech = new Technician();
             tech.setSource([TEST_SOURCE_1, TEST_SOURCE_2, TEST_SOURCE_EMPTY]);
-            tech.deleteSource([TEST_SOURCE_1, TEST_SOURCE_2]);
+            tech.unsetSource([TEST_SOURCE_1, TEST_SOURCE_2]);
 
             // Assertions
             expect((tech as any).knownSources.filter((x: ConfigSourceParams<any>) => x.source === TEST_SOURCE_1).length).to.equal(0);
