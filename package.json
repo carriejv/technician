@@ -1,6 +1,6 @@
 {
 	"name": "technician",
-	"version": "2.0.1",
+	"version": "2.0.2",
 	"description": "Access, manage, cache, and export all your config from a single service. Supports Typescript w/ typed config value output.",
 	"keywords": [
 		"config",
