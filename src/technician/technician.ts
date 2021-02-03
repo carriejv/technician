@@ -41,16 +41,16 @@ export class Technician<T> extends ConfigSource<T> {
      */
     public async read(key: string): Promise<T | undefined> {
 
-        // Check cache. If cacheRespectsPriority is not enabled, return cached value automatically if it exists.
+        // Check cache. If cacheIgnoresPriority is enabled, return cached value automatically if it exists.
         const cacheItem = this.checkCache(key);
-        if(cacheItem && !this.params?.cacheRespectsPriority) {
+        if(cacheItem && this.params?.cacheIgnoresPriority) {
             return cacheItem.value;
         }
 
         // Initialize result buffer.
         let resultCandidate: CachedConfigEntity<T> | undefined;
 
-        // If a cached item exists (cacheRespectsPriority on), it is the starting candidate.
+        // If a cached item exists (cacheIgnoresPriority on), it is the starting candidate.
         if(cacheItem) {
             resultCandidate = cacheItem;
         }
@@ -62,7 +62,7 @@ export class Technician<T> extends ConfigSource<T> {
         for(const knownSource of this.knownSources) {
             // Skip any source that doesn't exceed a currently-valid priority
             const sourcePriority = knownSource.priority ?? 0;
-            if(runningPriority !== undefined && runningPriority > sourcePriority) {
+            if(runningPriority !== undefined && runningPriority >= sourcePriority) {
                 continue;
             }
             // Skip any source with an ignoreIf that evaluates to true
@@ -153,16 +153,16 @@ export class Technician<T> extends ConfigSource<T> {
      */
     public readSync(key: string): T | undefined {
 
-        // Check cache. If cacheRespectsPriority is not enabled, return cached value automatically if it exists.
+        // Check cache. If cacheIgnoresPriority is enabled, return cached value automatically if it exists.
         const cacheItem = this.checkCache(key);
-        if(cacheItem && !this.params?.cacheRespectsPriority) {
+        if(cacheItem && this.params?.cacheIgnoresPriority) {
             return cacheItem.value;
         }
 
         // Initialize result buffer.
         let resultCandidate: CachedConfigEntity<T> | undefined;
 
-        // If a cached item exists (cacheRespectsPriority on), it is the starting candidate.
+        // If a cached item exists (cacheIgnoresPriority on), it is the starting candidate.
         if(cacheItem) {
             resultCandidate = cacheItem;
         }
@@ -174,7 +174,7 @@ export class Technician<T> extends ConfigSource<T> {
         for(const knownSource of this.knownSources) {
             // Skip any source that doesn't exceed a currently-valid priority
             const sourcePriority = knownSource.priority ?? 0;
-            if(runningPriority !== undefined && runningPriority > sourcePriority) {
+            if(runningPriority !== undefined && runningPriority >= sourcePriority) {
                 continue;
             }
             // Skip any source with an ignoreIf that evaluates to true
@@ -308,12 +308,12 @@ export class Technician<T> extends ConfigSource<T> {
     }
 
     /**
-     * Delete ConfigSource(s) from Technician.
-     * @param configSource  The config source(s) to delete. Sources are managed by reference, so the ConfigSource passed in
+     * Remove ConfigSource(s) from Technician.
+     * @param configSource  The config source(s) to remove. Sources are managed by reference, so the ConfigSource passed in
      *                      must be the same object passed in to setSource.
-     *                      If a {source, priority} object was passed in, the only the source should be passed in to deleteSource.
+     *                      If a {source, priority} object was passed in, the only the source should be passed in to unsetSource.
      */
-    public deleteSource(configSource: ConfigSource<T> | ConfigSource<T>[]): void {
+    public unsetSource(configSource: ConfigSource<T> | ConfigSource<T>[]): void {
         // Handle singular params.
         if(!Array.isArray(configSource)) {
             configSource = [configSource];

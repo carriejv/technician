@@ -3,12 +3,8 @@ import { ConfigEntity } from './entity-types';
 
 /** Params object passed to the Technician constructor. */
 export interface TechnicianParams {
-    /** 
-     * If true, cached values are stored with their source priority 
-     * and higher-priority sources will be checked on subsequent reads
-     * even if a cached value exists.
-     */
-    cacheRespectsPriority?: boolean;
+    /** If true, Technician will ignore priority if a cached value exists and always return it. */
+    cacheIgnoresPriority?: boolean;
     /** Default cache length in ms. */
     defaultCacheLength?: number;
     /** If true, Technician will prioritize running fewer interpreter functions over fewer source reads. */
