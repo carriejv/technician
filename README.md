@@ -21,7 +21,7 @@ To view full documentation, download this package and run `npm run docs`.
 
 `npm i technician`
 
-`npm i @technician/source/some-source`
+`npm i @technician/source-foo`
 
 Technician is compatible with Node 10 LTS and up. Some sources may have different compatability requirements.
 
@@ -63,15 +63,15 @@ Official Technician config sources can be found in the [@technician](https://www
 
 * `EnvConfigSource` - Reads environment variables into Technician.
 
-    [![EnvConfigSource](https://img.shields.io/npm/v/@technician/source/env?label=@technician/source/env)](https://www.npmjs.com/package/@technician/source/env)
+    [![EnvConfigSource](https://img.shields.io/npm/v/@technician/source/env?label=@technician/source-env)](https://www.npmjs.com/package/@technician/source-env)
 
 * `FileConfigSource` - Reads a file as a key: value config map.
 
-    [![JSONConfigSource](https://img.shields.io/npm/v/@technician/source/file?label=@technician/source/file)](https://www.npmjs.com/package/@technician/source/file)
+    [![JSONConfigSource](https://img.shields.io/npm/v/@technician/source/file?label=@technician/source-file)](https://www.npmjs.com/package/@technician/source-file)
 
 * `FSConfigSource` - Reads directories of config files. Works with Docker & Kubernetes secrets.
 
-    [![FSConfigSource](https://img.shields.io/npm/v/@technician/source/fs?label=@technician/source/fs)](https://www.npmjs.com/package/@technician/source/fs)
+    [![FSConfigSource](https://img.shields.io/npm/v/@technician/source/fs?label=@technician/source-fs)](https://www.npmjs.com/package/@technician/source-fs)
 
 Technician instances can also be used as ConfigSources for other instances of Technician in complex setups.
 
