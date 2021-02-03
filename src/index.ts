@@ -1,5 +1,5 @@
 /**
- *  Copyright 2020 Carrie J Vrtis
+ *  Copyright 2021 Carrie J Vrtis
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -19,27 +19,32 @@ import {
 } from './technician/technician';
 
 import {
-    TechnicianSync
-} from './technician/technician-sync';
+    ConfigSource
+} from './config-source/config-source';
 
 import {
-    DefaultInterpreters
-} from './interpreters/default-interpreters';
-
-import {
-    DefaultInterpretersSync
-} from './interpreters/default-interpreters-sync';
+    ManualConfigSource
+} from './config-source/manual-config-source';
 
 import {
     ConfigNotFoundError
 } from './error/config-not-found-error';
 
 import {
-    ConfigSource,
-    ConfigSourceSync,
-    Interpreter,
-    InterpreterSync
-} from './types/source-types';
+    Alias
+} from './middleware/alias/alias';
+
+import {
+    Aliaser
+} from './middleware/alias/aliaser';
+
+import {
+    Interpret
+} from './middleware/interpret/interpret';
+
+import {
+    Interpreter
+} from './middleware/interpret/interpreter';
 
 import {
     JSONData,
@@ -51,16 +56,13 @@ import {
 
 export {
     Technician,
-    TechnicianSync,
-    DefaultInterpreters,
-    DefaultInterpreters as Interpret,
-    DefaultInterpretersSync,
-    DefaultInterpretersSync as InterpretSync,
-    ConfigNotFoundError,
     ConfigSource,
-    ConfigSourceSync,
+    ManualConfigSource,
+    ConfigNotFoundError,
+    Alias,
+    Aliaser,
+    Interpret,
     Interpreter,
-    InterpreterSync,
     JSONData,
     JSONPrimitive,
     SupportedEncoding,
