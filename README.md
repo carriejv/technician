@@ -6,12 +6,12 @@
 
 Technician provides a central service to manage everything related to your application's config.
 
-Technician is built to allow for robust and complex config management. With Technician, you can:
+Technician is built to allow for robust and complex config management with no runtime dependencies. With Technician, you can:
 
 * Combine config from a variety of sources like environment variables, config files, databases, and CLI arguments.
-* Change config based on environment (or any other runtime condition).
+* Easily set up switchable config environments for testing, production, etc.
 * Automatically cache the results of all your config reads.
-* Override config from one source (ie, a file) with another (ie, an environment variable) -- with different cache policies for each. Great for debugging in production!
+* Set up the ability to easily override config post-deploy.
 * Create reusable parsers and validators for complex config.
 * Define TypeScript types for your config.
 
@@ -21,249 +21,199 @@ To view full documentation, download this package and run `npm run docs`.
 
 `npm i technician`
 
-`npm i @technician/your-source-here`
+`npm i @technician/source/some-source`
 
 Technician is compatible with Node 10 LTS and up. Some sources may have different compatability requirements.
 
-## Usage Examples
+## Basic Usage
 
 ### The Basics
 ```ts
-import {Technician, Interpret} from 'technician';
-import {EnvConfigSource} from '@technician/env-config-source';
+import {Technician} from 'technician';
+import {EnvConfigSource} from '@technician/source/env';
 
-// Create an instance of Technician and a config source.
-// Your interpreter function determines the typing of your results.
-const technician = new Technician(Interpret.asText('utf8'));
-const envSource = new EnvConfigSource();
-
-// Add the source to Technician. Now, all of its values can be accessed.
-technician.setSource(envSource);
+// Create a Technician config manager.
+// Technician can access any values visible to its config source(s).
+const technician = new Technician(new EnvConfigSource());
 const value = await technician.read('MY_ENV_VAR');
 
-// TypeScript will automatically infer value's type!
-value.substring(0, 1); 
+// Possible value types are inferred based on the config sources available.
+typeof value === 'string'; 
 
-// Require a value, throwing a ConfigNotFoundError if it does not exist.
+// You can also require a value, throwing a ConfigNotFoundError if it does not exist.
 const importantValue = await technician.require('MY_IMPORTANT_VAR');
-
 // ... or just read everything at once.
 const everything = await technician.readAll();
-// {MY_ENV_VAR: 'something', MY_IMPORTANT_VAR: 'something-else', ...}
+// everything = {MY_ENV_VAR: 'something', MY_IMPORTANT_VAR: 'something-else', ...}
 ```
 
-### Different Environments
-```ts
-import {Technician, Interpret} from 'technician';
-import {EnvConfigSource} from '@technician/env-config-source';
-import {FSConfigSource} from '@technician/fs-config-source';
+## Synchronous Usage
 
-// By default, all values are returned as Buffers if no Interpreter is set.
-const technician = new Technician();
-const envSource = new EnvConfigSource();
-const filesystemSource = new FSConfigSource('./config/dir/');
+Technician provides `readSync()`, `requireSync()`, `readAllSync()`, and `listSync()` for use with synchronous code. These functions will only search synchronously-accessible config sources, so they may have the same level of visibility as their async counterparts.
 
-// Add the sources.
-technician.setSource([{
-    source: envSource,
-    ignoreIf: () => process.env.NODE_ENV === 'production'
-}, filesystemSource]);
-
-// Environment vars will only be checked in non-production environments.
-const value = await technician.read('key');
-```
-
-### Combine Multiple Sources Into One
-```ts
-import {Technician, Interpret} from 'technician';
-import {EnvConfigSource} from '@technician/env-config-source';
-import {FSConfigSource} from '@technician/fs-config-source';
-
-// By default, all values are returned as Buffers if no Interpreter is set.
-const technician = new Technician();
-const envSource = new EnvConfigSource();
-const filesystemSource = new FSConfigSource('~/.ssh/*');
-
-// Add the sources.
-technician.setSource([envSource, filesystemSource]);
-
-// Create an alias to link related config.
-// The default keys used are defined by each config source.
-technician.alias('rsa_pubkey', ['RSA_PUB_KEY', 'id_rsa.pub']);
-
-// Get the value from either source.
-const value = await technician.read('rsa_pubkey');
-// ... or just from one, if you want.
-const valueFromFS = await technician.read('id_rsa.pub');
-```
-
-### Override Config On The Fly
-```ts
-import {Technician, Interpret} from 'technician';
-import {EnvConfigSource} from '@technician/env-config-source';
-import {FSConfigSource} from '@technician/fs-config-source';
-
-const technician = new Technician(Interpret.asBuffer(), {
-    // Higher priority sources are checked, even if a value is cached.
-    cacheRespectsPriority: true,
-    // Set a default cache length. By default, the cache lasts forever.
-    defaultCacheLength: 1000 * 60 * 60;
-});
-const envSource = new EnvConfigSource();
-const filesystemSource = new FSConfigSource('/etc/ssl/certs');
-
-// Sources with higher priority will be used over those with lower priority.
-// By default, sources have a priority of 0 and cache forever.
-technician.setSource([
-    {
-        source: envSource,
-        priority: 1,
-        cacheFor: -1 // Disable caching for envSource
-    },
-    filesystemSource // Just use the default config for FS.
-]);
-
-// Create an alias that links both config sources to a single key.
-technician.alias('ssl_cert', ['SSL_CERT', 'mysite.crt']);
-
-// This alias will return the filesystem value and cache it for an hour --
-// unless SSL_CERT is set, which overrides it and disables caching.
-const value = await technician.read('ssl_cert');
-```
+A single `ConfigSource` can implement both `read()` and `readSync()`, etc. to support both access methods. If only sync access is supported, async reads will default to using it.
 
 ## Config Sources
 
-Config sources are the heart of Technician. Technician is built to be fully modular, and provides no functionality out of the box unless at least one config source is installed and configured.
+Config sources are the heart of Technician. Technician is built to be fully modular, and provides little  functionality out of the box unless at least one config source is installed and configured.
 
-Official Technician config sources can be found in the [@technician](https://www.npmjs.com/org/technician) org on NPM. Common starter sources are listed below:
+Official Technician config sources can be found in the [@technician](https://www.npmjs.com/org/technician) org on NPM. Official modules (sources and otherwise) will share the same major version as the compatible version of Technician. Common starter sources are listed below:
+
+* `ManualConfigSource` - Reads manually `set()` values. Provided directly `technician`.
 
 * `EnvConfigSource` - Reads environment variables into Technician.
 
-    [![EnvConfigSource](https://img.shields.io/npm/v/@technician/env-config-source?label=@technician/env-config-source)](https://www.npmjs.com/package/@technician/env-config-source)
+    [![EnvConfigSource](https://img.shields.io/npm/v/@technician/source/env?label=@technician/source/env)](https://www.npmjs.com/package/@technician/source/env)
 
-* `FSConfigSource` - Reads directories of config files. Also works with Docker & Kubernetes secrets.
+* `FileConfigSource` - Reads a file as a key: value config map.
 
-    [![FSConfigSource](https://img.shields.io/npm/v/@technician/fs-config-source?label=@technician/fs-config-source)](https://www.npmjs.com/package/@technician/fs-config-source)
+    [![JSONConfigSource](https://img.shields.io/npm/v/@technician/source/file?label=@technician/source/file)](https://www.npmjs.com/package/@technician/source/file)
 
-* `JSONConfigSource` - Reads JSON strings or files as a key: value config map. Can also be extended a base config source for any source that reads from an internal JSON map.
+* `FSConfigSource` - Reads directories of config files. Works with Docker & Kubernetes secrets.
 
-    [![JSONConfigSource](https://img.shields.io/npm/v/@technician/json-config-source?label=@technician/json-config-source)](https://www.npmjs.com/package/@technician/json-config-source)
-
+    [![FSConfigSource](https://img.shields.io/npm/v/@technician/source/fs?label=@technician/source/fs)](https://www.npmjs.com/package/@technician/source/fs)
 
 Technician instances can also be used as ConfigSources for other instances of Technician in complex setups.
 
-Technician is designed to be easily extensible -- build your own source by implementing the `ConfigSource` interface, extend an existing config source, or use community-made sources!
+Technician is designed to be easily extensible -- build your own source by extending the `ConfigSource` base class, extend an existing config source, or use community-made sources.
 
-## Interpreting Config Data
+## Config Environments
 
-By default, all Technician returns any key with valid data as a Buffer. Keys that do not exist are returned as undefined. Technician uses `interpreter` functions to parse these Buffers into the type(s) you want to use in your code.
+Config environments can be created a number of ways in Technician. One of the easiest is to use the `ignoreIf` option on a source. You can also use middleware sources to define more complex environment and override behavior.
 
-The return type of your interpreter determines the return type of your `read()` and related functions. Each Technician instance has only one interpreter; you can choose between a single interpreter with complex typing, or multiple Technician instances with narrowly defined typing.
+By default, the first source to return a valid value wins if multiple sources return values for the same key. You can also set a `priority` on a source. Higher priority sources will always win over a lower priority source. Default priority is `0`.
 
-### Narrow Typing
 ```ts
-const techStrings = new Technician(Interpret.asText());
-techStrings.setSource(someStringSource);
-const stringValue = techStrings.read('string-key');
-// Typescript knows exactly what this value is.
-typeof stringValue === 'string'
+import {Technician} from 'technician';
+import {FileConfigSource} from '@technician/source/file';
 
-const techNumbers = new Technician(Interpret.asNumber());
-techNumbers.setSource(someNumbersource);
-const numberValue = techNumbers.read('number-key');
-// ... and this one, because you read it from a different instance.
-typeof numberValue === 'number'
+const technician = new Technician([
+    {source: new FileConfigSource('.testconfig'), ignoreIf: () => process.env.NODE_ENV === 'production'},
+    {source: new FileConfigSource('.prodconfig')},
+    {source: new FileConfigSource('.overrideEverything'), priority: 1}
+]);
+const value = await technician.read('client_secret');
 ```
 
-### Broad Typing
+You can also set sources at runtime to, for example, override config during testing.
 ```ts
-const technician = new Technician(async configData: Promise<number | string> => {
-    if(configData.key === 'number-key' || configData.source === someNumberSource) {
-        return await Interpet.asNumber()(configData);
-    }
-    return await Interpret.asText()(configData);
+import { ManualConfigSource } from 'technician';
+import { myTechnicianInstance } from '../some-module';
+
+const testConfig = new ManualConfigSource({
+    client_secret: 'foo'
 });
-technician.setSource(someStringSource);
-technician.setSource(someNumberSource);
 
-const stringValue = techStrings.read('string-key');
-const numberValue = techNumbers.read('number-key');
+before(() => {
+    myTechnicianInstance.setSource({source: testConfig, priority: 999});
+});
 
-// You can read both keys from one Technician instance,
-// ... but it's up to you to handle the type variance.
-typeof stringValue === 'number' | 'string'
-typeof numberValue === 'number' | 'string'
+after(() => {
+    myTechnicianInstance.unsetSource(testConfig)
+});
 ```
 
-If using vanilla Javascript instead of Typescript, a single broad interpreter is almost always the best option provided your downstream code can handle the (potentially) variable data types for config values since type checking is irrelevant.
+## Middleware Sources
 
-## Default Interpreters
+A middleware source is a `ConfigSource` that wraps a lower-level source and transforms its outputs.
 
-Technician provides a package of basic interpreters as `Interpret`. This contains
+Technician provides two middleware sources out of the box, `Aliaser` and `Interpreter`.
+
+### Aliases
+
+Aliases can be used to make an individual config value easier to access, or to create a single key that is shared between multiple sources.
+
+Aliases can be built directly as an `Aliaser` instance or using the `Alias` semantic API:
+```ts
+import {Aliaser} from 'technician';
+const aliasedSource = new Aliaser(myConfigSource, {alias: 'my-default-key'});
+```
+```ts
+import {Alias} from 'technician';
+const aliasedSource = Alias.set('alias').to('my-default-key').on(myConfigSource);
+// ...or
+const lotsOfAliases = Alias.set({lots: 'of', aliases: 'here'}).on(myConfigSource);
+```
+
+Aliases can be used in combination with the `priority` option to set up config override behavior.
+```ts
+import {Alias, Technician} from 'technician';
+import {EnvConfigSource} from '@technician/source/env';
+import {FileConfigSource} from '@technician/source/file';
+
+const technician = new Technician([
+    {source: Alias.set('client-secret').to('CLIENT_SECRET').on(new EnvConfigSource()), priority: 1, cacheFor: -1},
+    Alias.set('client-secret').to('client_secret').on(new FileConfigSource('.myapprc'))
+]);
+```
+
+With the setup above, Technician would return values from `.myapprc` unless the environment variable `CLIENT_SECRET` was set, at which point it would begin returning that value without caching it.
+
+By default, sources have a `priority` of `0` and cache forever. To disable caching, set a negative `cacheFor`.
+
+`Aliaser` allows access via both the alias and the original key by default. This passthrough behavior is configurable by passing `'full'`, `'partial'`, or `'none'` to the constructor or ending an `Alias` call with `withPassthrough()`, `withPartialPassthrough()`, or `withoutPassthrough()`.
+
+Partial passthrough allows access only to keys which are unaliased. No passthrough prevents data from being returned by anything other than explicitly set aliases.
+
+### Interpreter
+
+Interpreters allow raw values to be deserialized, validated, or otherwise transformed. This work is done prior to caching, meaning expensive work will not be unnecessarily repeated.
+
+Interpreters can be built directly or via the `Interpret` API:
+```ts
+import {Interpreter} from 'technician';
+const interpretedSource = new Interpreter(someBufferSource, configItem => configItem.value?.toString('utf8'));
+```
+```ts
+import {Interpreter} from 'technician';
+const interpretedSource = Interpret.buffer.asString(someBufferSource, 'utf8');
+```
+
+The type returned by the Interpreter function is seen as the "true" type of the source by Technician, and will adjust the typing of reads appropriately. If an interpreter returns undefined in a particular case, Technician ignores this value as though it were nonexistant in the root source.
+
+By default, interpreter functions are synchronous to maintain compatbility with both async and sync read operations. However, if desired, you can pass in an object containing both an async and sync variant of the interpreter function to the `Interpreter` constructor. If no sync variant is provided, the source will be treated as async-only and ignored by synchronous reads.
+```ts
+const interpretedSource = new Interpreter(someBufferSource, {
+    async: async configItem => {
+        await somethingAsync();
+        return configItem.value?.toString('utf8');
+    }
+    sync: configItem => configItem.value?.toString('utf8')
+)};
+```
+
+The `Interpret` package provides several common conversions for both `string` and `Buffer` data, the two raw types returned most commonly by sources. `Interpret` may also be extended by external interpreter packages.
 
 * `asBuffer()`
-    - Returns only the raw data Buffer stored internally.
-* `asText('utf8' | 'ascii' | ...)`
-    - Returns a string value from the internal Buffer using the specified encoding.
+    - Returns a Buffer containing the contents of a string.
+* `asString('utf8' | 'ascii' | ...)`
+    - Returns a string value from a Buffer.
 * `asBool()`
-    - Returns a boolean value. Buffers not containg exactly `0x00` or `0x01` are ignored.
+    - Returns a boolean value.
+    - <0x00> and 'false' = false, <0x01> and 'true' = true.
+    - Any other values are undefined.
 * `asNumber('int32' | 'uint32' | 'float' | ...)`
-    - Interprets the Buffer as a numeric value. By default, uses 32-bit signed ints and `os.endianness()`.
-    - Assumes the Buffer contains only the number. Reads from offset 0 and ignores trailing data.
-    - Number types use the naming conventions of [Node's Buffer type](https://nodejs.org/api/buffer.html#buffer_buf_readbigint64be_offset) `readX` functions, with `X` in all lowercase being the id used by Technician.
-    - Number data type may be passed in full with endianness `uint32le` or as only `uint32` to preserve the use of OS-native endianness.
+    - For Buffers, reads from offset 0 and ignores trailing data.
+        - By default, uses 32-bit signed ints and `os.endianness()`.
+        - Number types use the naming conventions of [Node's Buffer type](https://nodejs.org/api/buffer.html#buffer_buf_readbigint64be_offset) `readX` functions, with `X` in all lowercase being the id used by Technician.
+        - Number data type may be passed in full with endianness `uint32le` or as only `uint32` to preserve the use of OS-native endianness.
+    - For Strings, uses `parseFloat()`.
 * `asBigInt('bigint64' | 'biguint64' | ...)`
     - asNumber, but bigger.
 * `asJSON('utf8' | 'ascii' | ...)`
-    - `JSON.parse()`s the config values. Invalid JSON is ignored.
-* `asTextOrJSON('utf8' | 'ascii' | ...)`
+    - `JSON.parse()`s values. Invalid JSON is undefined.
+* `asStringOrJSON('utf8' | 'ascii' | ...)`
     - Returns a JSON object or array if the value is valid JSON, else a plaintext string.
-
-Interpreters can also be used to perform whatever tasks are necessary to produce the desired usable config value, including deserialization, decryption of secrets, etc. Interpreters can also be used to validate data; an interpreter that returns `undefined` in a specific case will cause the underlying data source to be ignored.
-
-To implement your own interpreter, use the `Interpreter<T>` typing.
-
-### Example
-```ts
-const technician = new Technician(async configData => {
-    // Interpret based on key
-    if(configData.key !== 'THE_ONLY_VALID_KEY') {
-        return undefined;
-    }
-    // ... or source
-    if(configData.source !== envSource) {
-        return undefined;
-    }
-    // Finally, do something with the data.
-    return new MyCustomType(configData.data);
-});
-
-// ...
-
-await technician.read('THE_ONLY_VALID_KEY') instanceof MyCustomType === true
-```
-
-Interpreters can also be used to set per-item cache policy. This cache setting will override any default on Technician or the individual source. 
-```ts
-const technician = new Technician(async configData => {
-    return {
-        value: new MyCustomType(configData.data),
-        cacheFor: 1000
-    };
-});
-```
-
-If you intend to return an object with the properties `cacheFor` and `value` from an interpreter, it must be wrapped in the object above (or it will be read as an attempt to set an actual cache policy).
 
 ## Utility Functions
 
 ### List
 
-`technician.list()` returns a list of all available keys, including aliases.
+`technician.list()` or `technician.listSync()` returns a list of all available keys, including aliases.
 
 ### Describe
 
-`technician.describe(key)` can be used to return all information on a previously-read key for debugging, including its cache state and raw pre-interpretation buffer.
+`technician.describe(key)` can be used to return cached information on a previously-read key. This also includes its cache priority, 
 
 ### Export
 
@@ -275,17 +225,9 @@ If you intend to return an object with the properties `cacheFor` and `value` fro
 
 ### Editing Existing Sources
 
-If you want to change the priority or cache policy of a previously set source, you can simply pass it back in to `setSource()` with the new config. You can also `deleteSource()` to remove it completely.
+If you want to change the priority or cache policy of a previously set source, you can simply pass it back in to `setSource()` with the new config. You can also `unsetSource()` to remove it completely.
 
-Sources are managed by reference. The exact `ConfigSource` passed in at creation should be passed in to edit or delete it.
-
-## Synchronous Options
-
-`TechnicianSync` is provided by this package for use with synchronous code. `TechnicianSync` can only use synchronous sources (`ConfigSource`) and interpreters (`InterpreterSync`). This is not the recommended approach to using Technician, but is provided for compatability with purely sync code.
-
-`Technician` may utilize sync-only sources and interpreters, but `TechnicianSync` cannot use async components. A single config source may, however, implement both `ConfigSource` and `ConfigSource` to provide methods of accessing config data to both variants of Technician.
-
-`TechnicianSync`'s API is otherwise identical to `Technician`.
+Sources are managed by reference. The exact `ConfigSource` passed in at creation should be passed in to edit or delete it. For these purposes, a source and the same source wrapped in middleware are also different.
 
 ## Contributions
 
