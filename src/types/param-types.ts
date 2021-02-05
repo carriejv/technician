@@ -41,4 +41,3 @@ export interface InterpreterFunctionSet<T, U> {
 
 /** Shorthand meta-type for ConfigSource-like args accepted by Technician. */
 export type ConfigSourceArg<T> = ConfigSource<T> | ConfigSourceParams<T> | (ConfigSource<T> | ConfigSourceParams<T>)[];
-
