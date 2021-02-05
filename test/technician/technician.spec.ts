@@ -1,6 +1,6 @@
 import { expect } from 'chai';
-import { ConfigNotFoundError, ManualConfigSource, Technician } from '../src';
-import { ConfigSourceParams } from '../src/types/param-types';
+import { ConfigNotFoundError, ManualConfigSource, Technician } from '../../src';
+import { ConfigSourceParams } from '../../src/types/param-types';
 
 const VALUE_1 = 'value1';
 const VALUE_2 = 'value2';
@@ -77,6 +77,17 @@ describe('Technician', () => {
 
             // Test
             const result = await tech.read('only1');
+
+            // Assertions
+            expect(result).to.equal(VALUE_1);
+        });
+
+        it('should read a value from only a specified set of sources.', async () => {
+            // Build and configure a Technician instance.
+            const tech = new Technician([{source: TEST_SOURCE_1, priority: 1}, {source: TEST_SOURCE_2, priority: 2}]);
+
+            // Test
+            const result = await tech.read('shared', [TEST_SOURCE_1]);
 
             // Assertions
             expect(result).to.equal(VALUE_1);
@@ -230,12 +241,23 @@ describe('Technician', () => {
 
     describe('#require', () => {
 
-        it('should read a single config value using the default interpreter and return it if it exists.', async () => {
+        it('should read a single config value it if it exists.', async () => {
             // Build and configure a Technician instance.
             const tech = new Technician(TEST_SOURCE_1);
 
             // Test
             const result = await tech.require('only1');
+
+            // Assertions
+            expect(result).to.equal(VALUE_1);
+        });
+        
+        it('should read a value from only a specified set of sources.', async () => {
+            // Build and configure a Technician instance.
+            const tech = new Technician([{source: TEST_SOURCE_1, priority: 1}, {source: TEST_SOURCE_2, priority: 2}]);
+
+            // Test
+            const result = await tech.require('shared', [TEST_SOURCE_1]);
 
             // Assertions
             expect(result).to.equal(VALUE_1);
@@ -273,6 +295,19 @@ describe('Technician', () => {
             expect(result['shared']).to.equal(VALUE_2);
         });
 
+        it('should read config for a specified set of configured sources.', async () => {
+            // Build and configure a Technician instance.
+            const tech = new Technician([{source: TEST_SOURCE_1, priority: 1}, {source: TEST_SOURCE_2, priority: 2}]);
+
+            // Test
+            const result = await tech.readAll([TEST_SOURCE_1]);
+
+            // Assertions
+            expect(result['only1']).to.equal(VALUE_1);
+            expect(result['only2']).to.equal(undefined);
+            expect(result['shared']).to.equal(VALUE_1);
+        });
+
         it('should return an empty object if no valid config values exist.', async () => {
             // Build and configure a Technician instance.
             const tech = new Technician();
@@ -298,6 +333,19 @@ describe('Technician', () => {
             // Assertions -- order is not necessarily guarenteed.
             expect(result).to.include('only1');
             expect(result).to.include('only2');
+            expect(result).to.include('shared');
+        });
+
+        it('should list all known keys from a specified set of configured sources.', async () => {
+            // Build and configure a Technician instance.
+            const tech = new Technician([TEST_SOURCE_1, TEST_SOURCE_2]);
+
+            // Test
+            const result = await tech.list([TEST_SOURCE_1]);
+
+            // Assertions -- order is not necessarily guarenteed.
+            expect(result).to.include('only1');
+            expect(result).to.not.include('only2');
             expect(result).to.include('shared');
         });
 
@@ -358,6 +406,17 @@ describe('Technician', () => {
 
             // Assertions
             expect(result).to.equal(VALUE_2);
+        });
+
+        it('should read a value from only a specified set of sources.', () => {
+            // Build and configure a Technician instance.
+            const tech = new Technician([{source: TEST_SOURCE_1, priority: 1}, {source: TEST_SOURCE_2, priority: 2}]);
+
+            // Test
+            const result = tech.readSync('shared', [TEST_SOURCE_1]);
+
+            // Assertions
+            expect(result).to.equal(VALUE_1);
         });
 
         it('should read the highest priority config value available when a key is present in multiple sources.', () => {
@@ -508,6 +567,17 @@ describe('Technician', () => {
             expect(result).to.equal(VALUE_1);
         });
 
+        it('should read a value from only a specified set of sources.', () => {
+            // Build and configure a Technician instance.
+            const tech = new Technician([{source: TEST_SOURCE_1, priority: 1}, {source: TEST_SOURCE_2, priority: 2}]);
+
+            // Test
+            const result = tech.requireSync('shared', [TEST_SOURCE_1]);
+
+            // Assertions
+            expect(result).to.equal(VALUE_1);
+        });
+
         it('should throw a ConfigNotFoundError if it a config value does not exist.', () => {
             // Build and configure a Technician instance.
             const tech = new Technician(TEST_SOURCE_BAD);
@@ -540,6 +610,19 @@ describe('Technician', () => {
             expect(result['shared']).to.equal(VALUE_2);
         });
 
+        it('should read config for a specified set of configured sources.', () => {
+            // Build and configure a Technician instance.
+            const tech = new Technician([{source: TEST_SOURCE_1, priority: 1}, {source: TEST_SOURCE_2, priority: 2}]);
+
+            // Test
+            const result = tech.readAllSync([TEST_SOURCE_1]);
+
+            // Assertions
+            expect(result['only1']).to.equal(VALUE_1);
+            expect(result['only2']).to.equal(undefined);
+            expect(result['shared']).to.equal(VALUE_1);
+        });
+
         it('should return an empty object if no valid config values exist.', () => {
             // Build and configure a Technician instance.
             const tech = new Technician();
@@ -565,6 +648,19 @@ describe('Technician', () => {
             // Assertions -- order is not necessarily guarenteed.
             expect(result).to.include('only1');
             expect(result).to.include('only2');
+            expect(result).to.include('shared');
+        });
+
+        it('should list all known keys from a specified set of configured sources.', () => {
+            // Build and configure a Technician instance.
+            const tech = new Technician([TEST_SOURCE_1, TEST_SOURCE_2]);
+
+            // Test
+            const result = tech.listSync([TEST_SOURCE_1]);
+
+            // Assertions -- order is not necessarily guarenteed.
+            expect(result).to.include('only1');
+            expect(result).to.not.include('only2');
             expect(result).to.include('shared');
         });
 

@@ -27,10 +27,10 @@ Technician is compatible with Node 10 LTS and up. Some sources may have differen
 
 ## Basic Usage
 
-### The Basics
+### Adding a source and reading from it.
 ```ts
-import {Technician} from 'technician';
-import {EnvConfigSource} from '@technician/source/env';
+import { Technician } from 'technician';
+import { EnvConfigSource } from '@technician/source-env';
 
 // Create a Technician config manager.
 // Technician can access any values visible to its config source(s).
@@ -47,15 +47,30 @@ const everything = await technician.readAll();
 // everything = {MY_ENV_VAR: 'something', MY_IMPORTANT_VAR: 'something-else', ...}
 ```
 
+### Using middleware to parse complex config
+```ts
+import { Interpret, Technician, Uplevel } from 'technician';
+import { FSConfigSource } from '@technician/source-fs'
+
+const technician = new Technician(
+    // Middleware is described in depth below.
+    // This combination converts raw file buffers to JSON, and then moves the keys from config.json
+    //    up a level to be directly readable by Technician.
+    Uplevel.only('config.json').on(Interpret.buffer.asJSON(new FSConfigSource('/opt/myapp/config')))
+);
+
+await technician.read('json-key');
+```
+
 ## Synchronous Usage
 
-Technician provides `readSync()`, `requireSync()`, `readAllSync()`, and `listSync()` for use with synchronous code. These functions will only search synchronously-accessible config sources, so they may have the same level of visibility as their async counterparts.
+Technician provides `readSync()`, `requireSync()`, `readAllSync()`, and `listSync()` for use with synchronous code. These functions will only search synchronously-accessible config sources, so they may not have the same level of visibility as their async counterparts.
 
 A single `ConfigSource` can implement both `read()` and `readSync()`, etc. to support both access methods. If only sync access is supported, async reads will default to using it.
 
 ## Config Sources
 
-Config sources are the heart of Technician. Technician is built to be fully modular, and provides little  functionality out of the box unless at least one config source is installed and configured.
+Config sources are the heart of Technician. Technician is built to be fully modular, and provides little functionality out of the box unless at least one config source is installed and configured.
 
 Official Technician config sources can be found in the [@technician](https://www.npmjs.com/org/technician) org on NPM. Official modules (sources and otherwise) will share the same major version as the compatible version of Technician. Common starter sources are listed below:
 
@@ -65,34 +80,35 @@ Official Technician config sources can be found in the [@technician](https://www
 
     [![EnvConfigSource](https://img.shields.io/npm/v/@technician/source-env?label=@technician/source-env)](https://www.npmjs.com/package/@technician/source-env)
 
-* `FileConfigSource` - Reads a file as a key: value config map.
-
-    [![JSONConfigSource](https://img.shields.io/npm/v/@technician/source-file?label=@technician/source-file)](https://www.npmjs.com/package/@technician/source-file)
-
-* `FSConfigSource` - Reads directories of config files. Works with Docker & Kubernetes secrets.
+* `FSConfigSource` - Reads files from a given directory. Works with Docker & Kubernetes secrets.
 
     [![FSConfigSource](https://img.shields.io/npm/v/@technician/source-fs?label=@technician/source-fs)](https://www.npmjs.com/package/@technician/source-fs)
 
 Technician instances can also be used as ConfigSources for other instances of Technician in complex setups.
 
-Technician is designed to be easily extensible -- build your own source by extending the `ConfigSource` base class, extend an existing config source, or use community-made sources.
+Technician is designed to be easily extensible. You can build your own source by extending the `ConfigSource` base class and overriding its `read`, `readSync`, `list`, and `listSync` functions. You can also override `readAll` and `readAllSync` to provide behavior other than the default of reading all keys provided by `list()`.
 
 ## Config Environments
 
-Config environments can be created a number of ways in Technician. One of the easiest is to use the `ignoreIf` option on a source. You can also use middleware sources to define more complex environment and override behavior.
+Config environments can be created a number of ways in Technician. One of the easiest is to use the `ignoreIf` option on a source or pass in a whitelist of sources to the filter the results returned by `read()`, etc. You can also use middleware sources to define more complex environment and override behavior.
 
 By default, the first source to return a valid value wins if multiple sources return values for the same key. You can also set a `priority` on a source. Higher priority sources will always win over a lower priority source. Default priority is `0`.
 
 ```ts
-import {Technician} from 'technician';
-import {FileConfigSource} from '@technician/source/file';
-
 const technician = new Technician([
-    {source: new FileConfigSource('.testconfig'), ignoreIf: () => process.env.NODE_ENV === 'production'},
-    {source: new FileConfigSource('.prodconfig')},
-    {source: new FileConfigSource('.overrideEverything'), priority: 1}
+    {source: new FSConfigSource('./test-config'), ignoreIf: () => process.env.NODE_ENV === 'production'},
+    {source: new FSConfigSource('./prod-config')},
+    {source: new FSConfigSource('./important-directory'), priority: 1}
 ]);
 const value = await technician.read('client_secret');
+```
+
+```ts
+const technician = new Technician([
+    testSource,
+    prodSource
+]);
+const value = await technician.read('client_secret', [testSource]);
 ```
 
 You can also set sources at runtime to, for example, override config during testing.
@@ -117,7 +133,7 @@ after(() => {
 
 A middleware source is a `ConfigSource` that wraps a lower-level source and transforms its outputs.
 
-Technician provides two middleware sources out of the box, `Aliaser` and `Interpreter`.
+Technician provides three middleware sources out of the box, `Aliaser`, `Interpreter`, and `Upleveler`.
 
 ### Aliases
 
@@ -125,11 +141,11 @@ Aliases can be used to make an individual config value easier to access, or to c
 
 Aliases can be built directly as an `Aliaser` instance or using the `Alias` semantic API:
 ```ts
-import {Aliaser} from 'technician';
+import { Aliaser } from 'technician';
 const aliasedSource = new Aliaser(myConfigSource, {alias: 'my-default-key'});
 ```
 ```ts
-import {Alias} from 'technician';
+import { Alias } from 'technician';
 const aliasedSource = Alias.set('alias').to('my-default-key').on(myConfigSource);
 // ...or
 const lotsOfAliases = Alias.set({lots: 'of', aliases: 'here'}).on(myConfigSource);
@@ -137,23 +153,23 @@ const lotsOfAliases = Alias.set({lots: 'of', aliases: 'here'}).on(myConfigSource
 
 Aliases can be used in combination with the `priority` option to set up config override behavior.
 ```ts
-import {Alias, Technician} from 'technician';
-import {EnvConfigSource} from '@technician/source/env';
-import {FileConfigSource} from '@technician/source/file';
+import { Alias, Technician, Uplevel } from 'technician';
+import { EnvConfigSource } from '@technician/source-env';
+import { FSConfigSource } from '@technician/source-file';
 
 const technician = new Technician([
     {source: Alias.set('client-secret').to('CLIENT_SECRET').on(new EnvConfigSource()), priority: 1, cacheFor: -1},
-    Alias.set('client-secret').to('client_secret').on(new FileConfigSource('.myapprc'))
+    Alias.set('client-secret').to('client_secret.txt').on(new FSConfigSource('/run/secrets'))
 ]);
 ```
 
-With the setup above, Technician would return values from `.myapprc` unless the environment variable `CLIENT_SECRET` was set, at which point it would begin returning that value without caching it.
+With the setup above, reading `client-secret` would return the secret mounted at `/run/secrets` unless the environment variable `CLIENT_SECRET` was set, at which point it would begin returning that value without caching it.
 
 By default, sources have a `priority` of `0` and cache forever. To disable caching, set a negative `cacheFor`.
 
 `Aliaser` allows access via both the alias and the original key by default. This passthrough behavior is configurable by passing `'full'`, `'partial'`, or `'none'` to the constructor or ending an `Alias` call with `withPassthrough()`, `withPartialPassthrough()`, or `withoutPassthrough()`.
 
-Partial passthrough allows access only to keys which are unaliased. No passthrough prevents data from being returned by anything other than explicitly set aliases.
+Partial passthrough blocks access to aliased keys by their unaliased name. No passthrough prevents data from being returned by anything other than explicitly set aliases.
 
 ### Interpreter
 
@@ -161,15 +177,15 @@ Interpreters allow raw values to be deserialized, validated, or otherwise transf
 
 Interpreters can be built directly or via the `Interpret` API:
 ```ts
-import {Interpreter} from 'technician';
+import { Interpreter } from 'technician';
 const interpretedSource = new Interpreter(someBufferSource, configItem => configItem.value?.toString('utf8'));
 ```
 ```ts
-import {Interpreter} from 'technician';
+import { Interpret } from 'technician';
 const interpretedSource = Interpret.buffer.asString(someBufferSource, 'utf8');
 ```
 
-The type returned by the Interpreter function is seen as the "true" type of the source by Technician, and will adjust the typing of reads appropriately. If an interpreter returns undefined in a particular case, Technician ignores this value as though it were nonexistant in the root source.
+The type returned by the Interpreter function is seen as the "true" type of the source by Technician and will adjust the typing of reads appropriately. If an interpreter returns undefined in a particular case, Technician ignores this value as though it were nonexistant in the root source.
 
 By default, interpreter functions are synchronous to maintain compatbility with both async and sync read operations. However, if desired, you can pass in an object containing both an async and sync variant of the interpreter function to the `Interpreter` constructor. If no sync variant is provided, the source will be treated as async-only and ignored by synchronous reads.
 ```ts
@@ -204,6 +220,38 @@ The `Interpret` package provides several common conversions for both `string` an
     - `JSON.parse()`s values. Invalid JSON is undefined.
 * `asStringOrJSON('utf8' | 'ascii' | ...)`
     - Returns a JSON object or array if the value is valid JSON, else a plaintext string.
+
+### Upleveler
+
+Uplevelers take a config source that return `{key: value}` objects and return those values to Technician, effectively "moving them up a level." Uplevelers can be used to take structured data out of a single key and convert it into several keys that are easier to use.
+
+```ts
+// ... without Upleveler
+await Technician.read('config.json') // {key: 'value', something: 'else'}
+// ... with Upleveler
+await Technician.read('key') // 'value'
+await Technician.read('something') // 'else'
+```
+
+You can choose to uplevel all keys on a source or only a specific set of keys. The first read from the base source to set a value for a particular key wins.
+
+Uplevelers can be constructed directly or via `Uplevel`.
+```ts
+import { Upleveler } from 'technician';
+const upleveledSource = new Upleveler(someJSONSource);
+// ... or
+const upleveledSource = new Upleveler(someJSONSource, ['only-this.json']);
+```
+```ts
+import { Uplevel } from 'technician';
+const upleveledSource = Uplevel.all().on(someJSONSource);
+// ... or
+const upleveledSource = Uplevel.only('only-this.json').on(someJSONSource);
+```
+
+The Upleveler has its own short-lived internal cache, which helps to reduce the cost of repeatedly accessing the same key on the base source. Values returned through an Upleveler may not immediately reflect changes in the base source.
+
+To disable this behavior, you can pass a negative value as the 3rd constructor parameter or use `Uplevel.all().withoutCache()`. You can also pass a custom cache length in ms (`withCache()` via `Uplevel`).
 
 ## Utility Functions
 

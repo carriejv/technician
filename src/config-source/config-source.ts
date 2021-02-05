@@ -12,23 +12,27 @@
 
  export class ConfigSource<T> {
     /**
-     * Reads a single config entity by key asynchronously, returning a data Buffer containing its contents.
-     * If the read returns undefined, the value is considered to not exist in the source.
+     * Reads a single config entity by key asynchronously.
+     * If undefined is returned, the source is ignored by Technician and other sources are checked.
      * @param key The key of the secret to read.
-     * @returns A Buffer containing the data associated with the key, or undefined it does not exist.
+     * @returns The type T value associated with the key, or undefined it does not exist.
      */
     public async read(key: string): Promise<T | undefined> {
         return this.readSync(key);
     }
 
     /**
-     * Reads all config entities asynchronously, returning an object keyed by config key with data Buffers containing their contents.
+     * Reads all config entities asynchronously, returning an object keyed by config key with type T values.
      * If a key has a value of undefined, it assumed that the key is present but the value is nonexistent or invalid.
      * @param key The key of the secret to read.
-     * @returns An object of key/value pairs, where the values are Buffers containing the data for each key.
+     * @returns An object of key/value pairs.
      */
     public async readAll(): Promise<{[key: string]: T | undefined}> {
-        return this.readAllSync();
+        const result: {[key: string]: T | undefined} = {};
+        for(const key of await this.list()) {
+            result[key] = await this.read(key);
+        }
+        return result;
     }
 
     /** 
@@ -41,23 +45,27 @@
     }
 
     /**
-     * Reads a single config entity by key synchronously, returning a data Buffer containing its contents.
-     * If the read returns undefined, the value is considered to not exist in the source.
+     * Reads a single config entity by key synchronously.
+     * If undefined is returned, the source is ignored by Technician and other sources are checked.
      * @param key The key of the secret to read.
-     * @returns A Buffer containing the data associated with the key, or undefined it does not exist.
+     * @returns The type T value associated with the key, or undefined it does not exist.
      */
     public readSync(key: string): T | undefined {
         return undefined;
     }
 
     /**
-     * Reads all config entities synchronously, returning an object keyed by config key with data Buffers containing their contents.
+     * Reads all config entities synchronously, returning an object keyed by config key with type T values.
      * If a key has a value of undefined, it assumed that the key is present but the value is nonexistent or invalid.
      * @param key The key of the secret to read.
-     * @returns An object of key/value pairs, where the values are Buffers containing the data for each key.
+     * @returns An object of key/value pairs.
      */
     public readAllSync(): {[key: string]: T | undefined} {
-        return {};
+        const result: {[key: string]: T | undefined} = {};
+        for(const key of this.listSync()) {
+            result[key] = this.readSync(key);
+        }
+        return result;
     }
 
     /** 

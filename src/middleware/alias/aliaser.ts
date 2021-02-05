@@ -6,7 +6,7 @@ export class Aliaser<T> extends ConfigSource<T> {
     private aliasedKeys: string[] = [];
     
     /**
-     * Builds a new Interpreter.
+     * Builds a new Aliaser.
      * @param configSource  The config source to alias.
      * @param aliasMap      An aliasKey:sourceKey map as a string:string object.
      * @param passthrough   Passthrough mode. May be `none` -> only explicitly aliased keys are available for read,
@@ -40,19 +40,6 @@ export class Aliaser<T> extends ConfigSource<T> {
                 return aliasedKey ? await this.configSource.read(aliasedKey) : undefined;
         }
     }
-
-    /** 
-     * Reads all values, using aliases as appropriate depending on passthrough method.
-     * @see {@link ConfigSource#readAll}
-     */
-    public async readAll(): Promise<{[key: string]: T | undefined}> {
-        const result: {[key: string]: T | undefined} = {};
-        for(const key of await this.list()) {
-            result[key] = await this.read(key);
-        }
-        return result;
-    }
-
 
     /** 
      * Lists all available keys, including aliases, depending on passthrough method.
@@ -94,19 +81,6 @@ export class Aliaser<T> extends ConfigSource<T> {
                 return aliasedKey ? this.configSource.readSync(aliasedKey) : undefined;
         }
     }
-
-    /** 
-     * Reads all values, using aliases as appropriate depending on passthrough method.
-     * @see {@link ConfigSource#readAllSync}
-     */
-    public readAllSync(): {[key: string]: T | undefined} {
-        const result: {[key: string]: T | undefined} = {};
-        for(const key of this.listSync()) {
-            result[key] = this.readSync(key);
-        }
-        return result;
-    }
-
 
     /** 
      * Lists all available keys, including aliases, depending on passthrough method.

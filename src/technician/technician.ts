@@ -36,10 +36,11 @@ export class Technician<T> extends ConfigSource<T> {
 
     /**
      * Reads a single config value by key asynchronously.
-     * @param key   The key of the config value to read.
-     * @returns     A config value of type T or undefined if the key has no value.
+     * @param key         The key of the config value to read.
+     * @param fromSources If set, only searches specified sources.
+     * @returns           A config value of type T or undefined if the key has no value.
      */
-    public async read(key: string): Promise<T | undefined> {
+    public async read(key: string, fromSources?: ConfigSource<T>[]): Promise<T | undefined> {
 
         // Check cache. If cacheIgnoresPriority is enabled, return cached value automatically if it exists.
         const cacheItem = this.checkCache(key);
@@ -59,7 +60,7 @@ export class Technician<T> extends ConfigSource<T> {
         // If the key is an alias, all potential subkeys will be checked.
         let runningPriority = cacheItem?.priority;
         let isNewResult;
-        for(const knownSource of this.knownSources) {
+        for(const knownSource of fromSources ? this.knownSources.filter(x => fromSources.includes(x.source)) : this.knownSources) {
             // Skip any source that doesn't exceed a currently-valid priority
             const sourcePriority = knownSource.priority ?? 0;
             if(runningPriority !== undefined && runningPriority >= sourcePriority) {
@@ -101,12 +102,13 @@ export class Technician<T> extends ConfigSource<T> {
     /**
      * Reads a single config value by key asynchronously.
      * Throws a `ConfigNotFoundError` error if the value is missing.
-     * @param key   The key of the config value to read.
-     * @throws      `ConfigNotFoundError` error if the value is missing.
-     * @returns     A config value of type T.
+     * @param key         The key of the config value to read.
+     * @param fromSources If set, only searches specified sources.
+     * @throws            `ConfigNotFoundError` error if the value is missing.
+     * @returns           A config value of type T.
      */
-    public async require(key: string): Promise<T> {
-        const value = await this.read(key);
+    public async require(key: string, fromSources?: ConfigSource<T>[]): Promise<T> {
+        const value = await this.read(key, fromSources);
         if(value === undefined) {
             throw new ConfigNotFoundError(`Key [${key}] not found in any configured source.`);
         }
@@ -117,25 +119,27 @@ export class Technician<T> extends ConfigSource<T> {
      * Reads all config values asynchronously.
      * Depending on the type and quantity of sources, this may be a very expensive operation. Use with caution.
      * If a key exists with no value, the key exists in at least one source but has no valid associated data.
+     * @param fromSources If set, only searches specified sources.
      * @returns An object of key/value pairs, with values of type T.
      */
-    public async readAll(): Promise<{[key: string]: T | undefined}> {
+    public async readAll(fromSources?: ConfigSource<T>[]): Promise<{[key: string]: T | undefined}> {
         // Read all values present in list()
         const result: {[key: string]: T | undefined} = {};
-        for(const key of await this.list()) {
-            result[key] = await this.read(key);
+        for(const key of await this.list(fromSources)) {
+            result[key] = await this.read(key, fromSources);
         }
         return result;
     }
     
     /**
      * Lists all known config keys.
+     * @param fromSources If set, only searches specified sources.
      * @returns An array of all known config keys contained in all added sources.
      */
-    public async list(): Promise<string[]> {
+    public async list(fromSources?: ConfigSource<T>[]): Promise<string[]> {
         // List all keys for all sources. Start with aliases created in Technician itself.
         let keys: string[] = [];
-        for(const knownSource of this.knownSources) {
+        for(const knownSource of fromSources ? this.knownSources.filter(x => fromSources.includes(x.source)) : this.knownSources) {
             keys = keys.concat(await knownSource.source.list())
         }
 
@@ -148,10 +152,11 @@ export class Technician<T> extends ConfigSource<T> {
      * Reads a single config value by key synchronously.
      * If a value cannot be accessed synchronously, it is considered undefined.
      * ConfigSources that do not provide sync compatability are ignored.
-     * @param key   The key of the config value to read.
-     * @returns     A config value of type T or undefined if the key has no value.
+     * @param key         The key of the config value to read.
+     * @param fromSources If set, only searches specified sources.
+     * @returns           A config value of type T or undefined if the key has no value.
      */
-    public readSync(key: string): T | undefined {
+    public readSync(key: string, fromSources?: ConfigSource<T>[]): T | undefined {
 
         // Check cache. If cacheIgnoresPriority is enabled, return cached value automatically if it exists.
         const cacheItem = this.checkCache(key);
@@ -171,7 +176,7 @@ export class Technician<T> extends ConfigSource<T> {
         // If the key is an alias, all potential subkeys will be checked.
         let runningPriority = cacheItem?.priority;
         let isNewResult;
-        for(const knownSource of this.knownSources) {
+        for(const knownSource of fromSources ? this.knownSources.filter(x => fromSources.includes(x.source)) : this.knownSources) {
             // Skip any source that doesn't exceed a currently-valid priority
             const sourcePriority = knownSource.priority ?? 0;
             if(runningPriority !== undefined && runningPriority >= sourcePriority) {
@@ -214,12 +219,13 @@ export class Technician<T> extends ConfigSource<T> {
      * Reads a single config value by key synchronously.
      * If a value cannot be accessed synchronously, it is considered undefined.
      * Throws a `ConfigNotFoundError` error if the value is missing.
-     * @param key   The key of the config value to read.
-     * @throws      `ConfigNotFoundError` error if the value is missing.
-     * @returns     A config value of type T.
+     * @param key         The key of the config value to read.
+     * @param fromSources If set, only searches specified sources.
+     * @throws            `ConfigNotFoundError` error if the value is missing.
+     * @returns           A config value of type T.
      */
-    public requireSync(key: string): T {
-        const value = this.readSync(key);
+    public requireSync(key: string, fromSources?: ConfigSource<T>[]): T {
+        const value = this.readSync(key, fromSources);
         if(value === undefined) {
             throw new ConfigNotFoundError(`Key [${key}] not found in any configured source.`);
         }
@@ -231,25 +237,27 @@ export class Technician<T> extends ConfigSource<T> {
      * If a value cannot be accessed synchronously, it is considered undefined.
      * Depending on the type and quantity of sources, this may be a very expensive operation. Use with caution.
      * If a key exists with no value, the key exists in at least one source but has no valid associated data.
+     * @param fromSources If set, only searches specified sources.
      * @returns An object of key/value pairs, with values of type T.
      */
-    public readAllSync(): {[key: string]: T | undefined} {
+    public readAllSync(fromSources?: ConfigSource<T>[]): {[key: string]: T | undefined} {
         // Read all values present in list()
         const result: {[key: string]: T | undefined} = {};
-        for(const key of this.listSync()) {
-            result[key] = this.readSync(key);
+        for(const key of this.listSync(fromSources)) {
+            result[key] = this.readSync(key, fromSources);
         }
         return result;
     }
 
     /**
      * Lists all known sync-compatible config keys.
+     * @param fromSources If set, only searches specified sources.
      * @returns An array of all known config keys contained in all added sources.
      */
-    public listSync(): string[] {
+    public listSync(fromSources?: ConfigSource<T>[]): string[] {
         // List all keys for all sources. Start with aliases created in Technician itself.
         let keys: string[] = [];
-        for(const knownSource of this.knownSources) {
+        for(const knownSource of fromSources ? this.knownSources.filter(x => fromSources.includes(x.source)) : this.knownSources) {
             keys = keys.concat(knownSource.source.listSync())
         }
 
