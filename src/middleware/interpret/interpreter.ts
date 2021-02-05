@@ -45,23 +45,6 @@ export class Interpreter<T, U = T> extends ConfigSource<U> {
     }
 
     /** 
-     * Reads all contents of the underlying source and runs the interpreter function on them.
-     * @see {@link ConfigSource#readAll}
-     */
-    public async readAll(): Promise<{[key: string]: U | undefined}> {
-        const rawValues = await this.configSource.readAll();
-        const interpretedValues: {[key: string]: U | undefined} = {};
-        for(const key of Object.keys(rawValues)) {
-            interpretedValues[key] = await this.interpreterFunction.async?.({
-                key: key,
-                source: this.configSource,
-                value: await this.configSource.read(key)
-            });
-        }
-        return interpretedValues;
-    }
-
-    /** 
      * Lists all keys in the underlying source.
      * @see {@link ConfigSource#list}
      */
@@ -79,23 +62,6 @@ export class Interpreter<T, U = T> extends ConfigSource<U> {
             source: this.configSource,
             value: this.configSource.readSync(key)
         });
-    }
-
-    /** 
-     * Reads all contents of the underlying source and runs the interpreter function on them.
-     * @see {@link ConfigSource#readAllSync}
-     */
-    public readAllSync(): {[key: string]: U | undefined} {
-        const rawValues = this.configSource.readAllSync();
-        const interpretedValues: {[key: string]: U | undefined} = {};
-        for(const key of Object.keys(rawValues)) {
-            interpretedValues[key] = this.interpreterFunction.sync?.({
-                key: key,
-                source: this.configSource,
-                value: this.configSource.readSync(key)
-            });
-        }
-        return interpretedValues;
     }
 
     /** 

@@ -38,27 +38,17 @@ describe('ConfigSource', () => {
 
     describe('#readAll', () => {
 
-        it('should exist and return an empty object.', async () => {
+        it('should read all keys returned by list(), returning a {key: value} object.', async () => {
             // Build and configure a ConfigSource
             const cs = new ConfigSource();
+            (cs as any).read = async () => 'value';
+            (cs as any).list = async () => ['key'];
 
             // Test
             const result = await cs.readAll();
 
             // Assertions
-            expect(result).to.deep.equal({});
-        });
-
-        it('should call readAllSync if defined.', async () => {
-            // Build and configure a ConfigSource
-            const cs = new ConfigSource();
-            (cs as any).readAllSync = () => { return {key: VALUE} };
-
-            // Test
-            const result = await cs.readAll();
-
-            // Assertions
-            expect(result).to.deep.equal({key: VALUE});
+            expect(result).to.deep.equal({key: 'value'});
         });
 
     });
@@ -107,15 +97,17 @@ describe('ConfigSource', () => {
 
     describe('#readAllSync', () => {
 
-        it('should exist and return an empty object.', () => {
+        it('should read all keys returned by listSync(), returning a {key: value} object.', () => {
             // Build and configure a ConfigSource
             const cs = new ConfigSource();
+            (cs as any).readSync = () => 'value';
+            (cs as any).listSync = () => ['key'];
 
             // Test
             const result = cs.readAllSync();
 
             // Assertions
-            expect(result).to.deep.equal({});
+            expect(result).to.deep.equal({key: 'value'});
         });
 
     });

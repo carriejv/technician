@@ -42,18 +42,6 @@ export class Upleveler<T> extends ConfigSource<T> {
     }
 
     /** 
-     * Reads all upleveled values.
-     * @see {@link ConfigSource#readAll}
-     */
-    public async readAll(): Promise<{[key: string]: T | undefined}> {
-        const result: {[key: string]: T | undefined} = {};
-        for(const key of await this.list()) {
-            result[key] = await this.read(key);
-        }
-        return result;
-    }
-
-    /** 
      * Lists all available keys.
      * @see {@link ConfigSource#list}
      */
@@ -80,18 +68,6 @@ export class Upleveler<T> extends ConfigSource<T> {
     }
 
     /** 
-     * Reads all upleveled values.
-     * @see {@link ConfigSource#readAllSync}
-     */
-    public readAllSync(): {[key: string]: T | undefined} {
-        const result: {[key: string]: T | undefined} = {};
-        for(const key of this.listSync()) {
-            result[key] = this.readSync(key);
-        }
-        return result;
-    }
-
-    /** 
      * Lists all available keys.
      * @see {@link ConfigSource#listSync}
      */
@@ -108,32 +84,22 @@ export class Upleveler<T> extends ConfigSource<T> {
      * Reads values from the base source asynchronously.
      */
     private async readSourceValues(): Promise<({[key: string]: T | undefined} | undefined)[]> {
-        if(this.uplevelKeys) {
-            const sourceResults: ({[key: string]: T | undefined} | undefined)[] = [];
-            for(const key of this.uplevelKeys) {
-                sourceResults.push(await this.configSource.read(key));
-            }
-            return sourceResults;
+        const sourceResults: ({[key: string]: T | undefined} | undefined)[] = [];
+        for(const key of this.uplevelKeys ?? await this.configSource.list()) {
+            sourceResults.push(await this.configSource.read(key));
         }
-        else {
-            return Object.values(await this.configSource.readAll());
-        }
+        return sourceResults;
     }
 
     /**
      * Reads values from the base source synchronously.
      */
     private readSourceValuesSync(): ({[key: string]: T | undefined} | undefined)[] {
-        if(this.uplevelKeys) {
-            const sourceResults: ({[key: string]: T | undefined} | undefined)[] = [];
-            for(const key of this.uplevelKeys) {
-                sourceResults.push(this.configSource.readSync(key));
-            }
-            return sourceResults;
+        const sourceResults: ({[key: string]: T | undefined} | undefined)[] = [];
+        for(const key of this.uplevelKeys ?? this.configSource.listSync()) {
+            sourceResults.push(this.configSource.readSync(key));
         }
-        else {
-            return Object.values(this.configSource.readAllSync());
-        }
+        return sourceResults;
     }
 
     /**

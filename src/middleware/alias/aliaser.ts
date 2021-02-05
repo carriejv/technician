@@ -42,19 +42,6 @@ export class Aliaser<T> extends ConfigSource<T> {
     }
 
     /** 
-     * Reads all values, using aliases as appropriate depending on passthrough method.
-     * @see {@link ConfigSource#readAll}
-     */
-    public async readAll(): Promise<{[key: string]: T | undefined}> {
-        const result: {[key: string]: T | undefined} = {};
-        for(const key of await this.list()) {
-            result[key] = await this.read(key);
-        }
-        return result;
-    }
-
-
-    /** 
      * Lists all available keys, including aliases, depending on passthrough method.
      * @see {@link ConfigSource#list}
      */
@@ -94,19 +81,6 @@ export class Aliaser<T> extends ConfigSource<T> {
                 return aliasedKey ? this.configSource.readSync(aliasedKey) : undefined;
         }
     }
-
-    /** 
-     * Reads all values, using aliases as appropriate depending on passthrough method.
-     * @see {@link ConfigSource#readAllSync}
-     */
-    public readAllSync(): {[key: string]: T | undefined} {
-        const result: {[key: string]: T | undefined} = {};
-        for(const key of this.listSync()) {
-            result[key] = this.readSync(key);
-        }
-        return result;
-    }
-
 
     /** 
      * Lists all available keys, including aliases, depending on passthrough method.
