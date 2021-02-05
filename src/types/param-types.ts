@@ -23,9 +23,6 @@ export interface ConfigSourceParams<T> {
     ignoreIf?: () => boolean
 }
 
-/** Shorthand meta-type for ConfigSource-like args accepted by Technician. */
-export type ConfigSourceArg<T> = ConfigSource<T> | ConfigSourceParams<T> | (ConfigSource<T> | ConfigSourceParams<T>)[];
-
 /** 
  * A set of sync and async interpreter functions, for use with Interpreter.
  * This object contains both a `sync` and `async` variant of an `interpreterFunction`.
@@ -41,3 +38,7 @@ export interface InterpreterFunctionSet<T, U> {
     /** The sync variant of the interpreter. */
     sync?: (ConfigEntity: ConfigEntity<T | undefined>) => | U | undefined
 }
+
+/** Shorthand meta-type for ConfigSource-like args accepted by Technician. */
+export type ConfigSourceArg<T> = ConfigSource<T> | ConfigSourceParams<T> | (ConfigSource<T> | ConfigSourceParams<T>)[];
+

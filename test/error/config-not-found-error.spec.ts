@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { ConfigNotFoundError } from '../src';
+import { ConfigNotFoundError } from '../../src';
 
 describe('ConfigNotFoundError', () => {
 

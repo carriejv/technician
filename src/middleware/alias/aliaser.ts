@@ -6,7 +6,7 @@ export class Aliaser<T> extends ConfigSource<T> {
     private aliasedKeys: string[] = [];
     
     /**
-     * Builds a new Interpreter.
+     * Builds a new Aliaser.
      * @param configSource  The config source to alias.
      * @param aliasMap      An aliasKey:sourceKey map as a string:string object.
      * @param passthrough   Passthrough mode. May be `none` -> only explicitly aliased keys are available for read,

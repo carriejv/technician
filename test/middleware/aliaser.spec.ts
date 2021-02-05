@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { Aliaser, ManualConfigSource } from '../src';
+import { Aliaser, ManualConfigSource } from '../../src';
 
 const VALUE = 'VALUE';
 const TEST_SOURCE = new ManualConfigSource({

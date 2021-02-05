@@ -47,6 +47,10 @@ import {
 } from './middleware/interpret/interpreter';
 
 import {
+    Upleveler
+} from './middleware/uplevel/upleveler';
+
+import {
     JSONData,
     JSONPrimitive,
     SupportedEncoding,
@@ -63,6 +67,7 @@ export {
     Aliaser,
     Interpret,
     Interpreter,
+    Upleveler,
     JSONData,
     JSONPrimitive,
     SupportedEncoding,

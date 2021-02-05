@@ -1,6 +1,6 @@
 import { expect } from 'chai';
-import { ConfigNotFoundError, ManualConfigSource, Technician } from '../src';
-import { ConfigSourceParams } from '../src/types/param-types';
+import { ConfigNotFoundError, ManualConfigSource, Technician } from '../../src';
+import { ConfigSourceParams } from '../../src/types/param-types';
 
 const VALUE_1 = 'value1';
 const VALUE_2 = 'value2';

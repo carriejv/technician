@@ -49,13 +49,13 @@ const everything = await technician.readAll();
 
 ## Synchronous Usage
 
-Technician provides `readSync()`, `requireSync()`, `readAllSync()`, and `listSync()` for use with synchronous code. These functions will only search synchronously-accessible config sources, so they may have the same level of visibility as their async counterparts.
+Technician provides `readSync()`, `requireSync()`, `readAllSync()`, and `listSync()` for use with synchronous code. These functions will only search synchronously-accessible config sources, so they may not have the same level of visibility as their async counterparts.
 
 A single `ConfigSource` can implement both `read()` and `readSync()`, etc. to support both access methods. If only sync access is supported, async reads will default to using it.
 
 ## Config Sources
 
-Config sources are the heart of Technician. Technician is built to be fully modular, and provides little  functionality out of the box unless at least one config source is installed and configured.
+Config sources are the heart of Technician. Technician is built to be fully modular, and provides little functionality out of the box unless at least one config source is installed and configured.
 
 Official Technician config sources can be found in the [@technician](https://www.npmjs.com/org/technician) org on NPM. Official modules (sources and otherwise) will share the same major version as the compatible version of Technician. Common starter sources are listed below:
 
@@ -64,10 +64,6 @@ Official Technician config sources can be found in the [@technician](https://www
 * `EnvConfigSource` - Reads environment variables into Technician.
 
     [![EnvConfigSource](https://img.shields.io/npm/v/@technician/source-env?label=@technician/source-env)](https://www.npmjs.com/package/@technician/source-env)
-
-* `FileConfigSource` - Reads a file as a key: value config map.
-
-    [![JSONConfigSource](https://img.shields.io/npm/v/@technician/source-file?label=@technician/source-file)](https://www.npmjs.com/package/@technician/source-file)
 
 * `FSConfigSource` - Reads directories of config files. Works with Docker & Kubernetes secrets.
 
@@ -153,7 +149,7 @@ By default, sources have a `priority` of `0` and cache forever. To disable cachi
 
 `Aliaser` allows access via both the alias and the original key by default. This passthrough behavior is configurable by passing `'full'`, `'partial'`, or `'none'` to the constructor or ending an `Alias` call with `withPassthrough()`, `withPartialPassthrough()`, or `withoutPassthrough()`.
 
-Partial passthrough allows access only to keys which are unaliased. No passthrough prevents data from being returned by anything other than explicitly set aliases.
+Partial passthrough blocks access to aliased keys by their unaliased name. No passthrough prevents data from being returned by anything other than explicitly set aliases.
 
 ### Interpreter
 
@@ -165,11 +161,11 @@ import {Interpreter} from 'technician';
 const interpretedSource = new Interpreter(someBufferSource, configItem => configItem.value?.toString('utf8'));
 ```
 ```ts
-import {Interpreter} from 'technician';
+import {Interpret} from 'technician';
 const interpretedSource = Interpret.buffer.asString(someBufferSource, 'utf8');
 ```
 
-The type returned by the Interpreter function is seen as the "true" type of the source by Technician, and will adjust the typing of reads appropriately. If an interpreter returns undefined in a particular case, Technician ignores this value as though it were nonexistant in the root source.
+The type returned by the Interpreter function is seen as the "true" type of the source by Technician and will adjust the typing of reads appropriately. If an interpreter returns undefined in a particular case, Technician ignores this value as though it were nonexistant in the root source.
 
 By default, interpreter functions are synchronous to maintain compatbility with both async and sync read operations. However, if desired, you can pass in an object containing both an async and sync variant of the interpreter function to the `Interpreter` constructor. If no sync variant is provided, the source will be treated as async-only and ignored by synchronous reads.
 ```ts

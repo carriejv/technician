@@ -7,7 +7,7 @@ mockery.enable({
 });
 
 import { expect } from 'chai';
-import { Interpret, Interpreter, ManualConfigSource, SupportedBigIntEncoding, SupportedNumberEncoding } from '../src';
+import { Interpret, Interpreter, ManualConfigSource, SupportedBigIntEncoding, SupportedNumberEncoding } from '../../src';
 
 describe('Interpret', () => {
 

@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { ConfigSource } from '../src';
+import { ConfigSource } from '../../src';
 
 const VALUE = 'VALUE';
 

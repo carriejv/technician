@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { Interpreter, ManualConfigSource } from '../src';
+import { Interpreter, ManualConfigSource } from '../../src';
 
 const VALUE = 'VALUE';
 const VALUE_BUF = Buffer.from(VALUE);

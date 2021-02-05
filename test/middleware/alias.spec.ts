@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { Alias, Aliaser, ManualConfigSource } from '../src';
+import { Alias, Aliaser, ManualConfigSource } from '../../src';
 
 const VALUE = 'VALUE'
 const OTHER_VALUE = 'OTHER_VALUE';
