@@ -305,6 +305,39 @@ describe('Interpret', () => {
 
     });
 
+    describe('#asBigInt', () => {
+
+        const VALUE = '5';
+        const EXPECTED = BigInt(5);
+
+        it('should build an Interpreter for converting String -> BigInt.', async () => {
+            const result = Interpret.string.asBigInt(new ManualConfigSource({key: VALUE}));
+
+            expect(result).to.be.instanceOf(Interpreter);
+            expect(await result.read('key')).to.deep.equal(EXPECTED);
+        });
+
+        it('should build an Interpreter that throws a syntax error for invalid strings.', async () => {
+            try {
+                const result = Interpret.string.asBigInt(new ManualConfigSource({key: 'donkeyballs'}));
+                await result.read('key');
+            }
+            catch(err) {
+                expect(err).to.be.instanceOf(SyntaxError);
+                return;
+            }
+            throw new Error('No error was thrown.');
+        });
+
+        it('should build an Interpreter that returns undefined if passed undefined.', async () => {
+            const result = Interpret.string.asBigInt(new ManualConfigSource());
+
+            expect(result).to.be.instanceOf(Interpreter);
+            expect(await result.read('nope')).to.equal(undefined);
+        });
+
+    });
+
     describe('#asJSON', () => {
 
         const VALUE = '{"key": "value"}';

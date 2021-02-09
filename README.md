@@ -90,7 +90,7 @@ Technician is designed to be easily extensible. You can build your own source by
 
 ## Config Environments
 
-Config environments can be created a number of ways in Technician. One of the easiest is to use the `ignoreIf` option on a source or pass in a whitelist of sources to the filter the results returned by `read()`, etc. You can also use middleware sources to define more complex environment and override behavior.
+Config environments can be created a number of ways in Technician. One of the easiest is to use the `ignoreIf` option on a source or pass in a whitelist of sources to filter the results returned by `read()`, etc. You can also use middleware sources to define more complex environment and override behavior.
 
 By default, the first source to return a valid value wins if multiple sources return values for the same key. You can also set a `priority` on a source. Higher priority sources will always win over a lower priority source. Default priority is `0`.
 
@@ -223,7 +223,7 @@ The `Interpret` package provides several common conversions for both `string` an
 
 ### Upleveler
 
-Uplevelers take a config source that return `{key: value}` objects and return those values to Technician, effectively "moving them up a level." Uplevelers can be used to take structured data out of a single key and convert it into several keys that are easier to use.
+Uplevelers take a config source that returns `{key: value}` objects and return those keys and values directly to Technician, effectively "moving them up a level." Uplevelers can be used to take structured data out of a single key and convert it into several keys that are easier to use.
 
 ```ts
 // ... without Upleveler
@@ -251,7 +251,7 @@ const upleveledSource = Uplevel.only('only-this.json').on(someJSONSource);
 
 The Upleveler has its own short-lived internal cache, which helps to reduce the cost of repeatedly accessing the same key on the base source. Values returned through an Upleveler may not immediately reflect changes in the base source.
 
-To disable this behavior, you can pass a negative value as the 3rd constructor parameter or use `Uplevel.all().withoutCache()`. You can also pass a custom cache length in ms (`withCache()` via `Uplevel`).
+To disable this behavior, you can pass a negative cache length to the constructor or use `Uplevel.all().withoutCache()`. You can also pass a custom cache length in ms (`withCache()` via `Uplevel`).
 
 ## Utility Functions
 
@@ -283,7 +283,7 @@ Contributions and pull requests are always welcome. Please be sure your code pas
 
 Pull requests with full code coverage are strongly encouraged.
 
-Technician is built to be modular and extensible. Feel free to publish your own config sources and/or interpreters!
+Technician is built to be modular and easily extensible. If you're building a config source, middleware, or other extension it should be published as its own package rather than incorporated into Technician.
 
 ## License
 

@@ -39,7 +39,9 @@ import {
 } from './middleware/alias/aliaser';
 
 import {
-    Interpret
+    Interpret,
+    InterpretBuffer,
+    InterpretString
 } from './middleware/interpret/interpret';
 
 import {
@@ -71,6 +73,8 @@ export {
     Alias,
     Aliaser,
     Interpret,
+    InterpretBuffer,
+    InterpretString,
     Interpreter,
     Uplevel,
     Upleveler,
