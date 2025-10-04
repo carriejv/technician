@@ -10,7 +10,7 @@ export class Map {
      * @param mappingFunction   A mapping function to convert from the raw key in the config source to the desired key.
      *                          If the mapping function returns undefined in a given case, that key will not be treated as though it does not exist.
      */
-    constructor(private mappingFunction: (key: string) => string) {}
+    constructor(private mappingFunction: (key: string) => string | undefined) {}
 
     /**
      * Creates a mapping function for a ConfigSource.
@@ -18,7 +18,7 @@ export class Map {
      * @param mappingFunction   A mapping function to convert from the raw key in the config source to the desired key.
      *                          If the mapping function returns undefined in a given case, that key will not be treated as though it does not exist.
      */
-    public static from(mappingFunction: (key: string) => string): Map {
+    public static from(mappingFunction: (key: string) => string | undefined): Map {
         return new Map(mappingFunction);
     }
 
