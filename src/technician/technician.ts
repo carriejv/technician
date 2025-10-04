@@ -16,7 +16,10 @@ import { TechnicianUtil } from '../util/technician-util';
 export class Technician<T> extends ConfigSource<T> {
 
     /** Internal entity cache. */
-    private entityCache: Map<string, CachedConfigEntity<T>> = new Map();
+    private entityCache: Map<string, Map<ConfigSource<T>, CachedConfigEntity<T>>> = new Map();
+
+    /** Map of the last known values returned for given keys. This does not necessarily mean they are still valid. */
+    private knownValues: Map<string, CachedConfigEntity<T>> = new Map();
 
     /** Array of known async entity sources. */
     private knownSources: ConfigSourceParams<T>[] = [];
@@ -41,61 +44,99 @@ export class Technician<T> extends ConfigSource<T> {
      * @returns           A config value of type T or undefined if the key has no value.
      */
     public async read(key: string, fromSources?: ConfigSource<T>[]): Promise<T | undefined> {
-
         // Check cache. If cacheIgnoresPriority is enabled, return cached value automatically if it exists.
-        const cacheItem = this.checkCache(key);
-        if(cacheItem && this.params?.cacheIgnoresPriority) {
-            return cacheItem.value;
+        if(this.params?.cacheIgnoresPriority) {
+            const cacheItem = this.scanCache(key);
+            if(cacheItem) {
+                return cacheItem.value;
+            }    
         }
 
         // Initialize result buffer.
-        let resultCandidate: CachedConfigEntity<T> | undefined;
+        let resultCandidate;
+        let runningPriority = -Infinity;
 
-        // If a cached item exists (cacheIgnoresPriority on), it is the starting candidate.
-        if(cacheItem) {
-            resultCandidate = cacheItem;
-        }
+        const canMerge = this.params?.mergeObjects || this.params?.mergeArrays;
 
         // Read in the target config data from potential sources.
         // If the key is an alias, all potential subkeys will be checked.
-        let runningPriority = cacheItem?.priority;
-        let isNewResult;
         for(const knownSource of fromSources ? this.knownSources.filter(x => fromSources.includes(x.source)) : this.knownSources) {
+
             // Skip any source that doesn't exceed a currently-valid priority
+            // If merging is enabled, we should check if equal-priority sources can be merged.
             const sourcePriority = knownSource.priority ?? 0;
-            if(runningPriority !== undefined && runningPriority >= sourcePriority) {
+            if((!canMerge && runningPriority >= sourcePriority) || (canMerge && runningPriority > sourcePriority)) {
                 continue;
             }
+
             // Skip any source with an ignoreIf that evaluates to true
             if(knownSource.ignoreIf?.()) {
                 continue;
             }
-            const readResult = await knownSource.source.read(key);
-            // Skip any data blocks that do not exist.
-            if(readResult === undefined) {
+
+            // Read value from cache or source if uncached
+            let configEntity = this.checkCache(key, knownSource.source);
+            if(!configEntity) {
+                const value = await knownSource.source.read(key);
+                // Skip any sources without data for the key
+                if(value === undefined) {
+                    continue;
+                }
+                // Cache newly read value
+                const cacheLength = knownSource.cacheFor ?? this.params?.defaultCacheLength;
+                configEntity =  {
+                    key,
+                    value,
+                    priority: sourcePriority,
+                    source: knownSource.source,
+                    cacheUntil: cacheLength ? Date.now() + cacheLength : Infinity
+                }
+                this.setCache(key, knownSource.source, configEntity);
+            }
+
+            // If we have a new top priority, all earlier results are stomped.
+            if(!resultCandidate || sourcePriority > runningPriority) {
+                runningPriority = sourcePriority;
+                resultCandidate = configEntity;
                 continue;
             }
-            // The candidate is valid.
-            isNewResult = true;
-            runningPriority = knownSource.priority;
-            // Calculate cache length
-            const cacheLength = knownSource.cacheFor ?? this.params?.defaultCacheLength;
-            // Update result candidate
-            resultCandidate = {
-                key,
-                value: readResult,
-                priority: sourcePriority,
-                source: knownSource.source,
-                cacheUntil: cacheLength ? Date.now() + cacheLength : Infinity
-            };
-        }
 
-        // Cache the value if it doesn't exist or has been replaced by a higher-priority result.
-        if(resultCandidate !== undefined && isNewResult) {
-            this.entityCache.set(key, resultCandidate);
+            // Handle merging
+            // Merge arrays if enabled, the new result is an array, and we're already merging into an array
+            if(this.params?.mergeArrays && Array.isArray(configEntity.value) && Array.isArray(resultCandidate.value)) {
+                const merged = [...resultCandidate?.value as T & any[], ...configEntity.value] as T;
+                // Set result candidate to the merged result.
+                // Merged results are never cached and have no priority. They are rebuilt as needed.
+                resultCandidate = {
+                    key,
+                    value: merged,
+                    priority: -Infinity,
+                    source: this,
+                    cacheUntil: -Infinity
+                }
+                continue;
+            }
+            // Merge objects if enabled, the new result is an object, and we're already merging into an object
+            // Arrays would pass this check also but we already handled them.
+            if(this.params?.mergeObjects && this.isObject(configEntity.value) && this.isObject(resultCandidate.value)) {
+                const merged = this.deepMergeObjects(configEntity.value, resultCandidate.value) as T;
+                // Set result candidate to the merged result.
+                // Merged results are never cached and have no priority. They are rebuilt as needed.
+                resultCandidate = {
+                    key,
+                    value: merged,
+                    priority: -Infinity,
+                    source: this,
+                    cacheUntil: -Infinity
+                }
+                continue;
+            }
         }
 
         // Return the value
+        if(resultCandidate) {
+            this.knownValues.set(key, resultCandidate);
+        }
         return resultCandidate?.value;
     }
 
@@ -157,61 +198,99 @@ export class Technician<T> extends ConfigSource<T> {
      * @returns           A config value of type T or undefined if the key has no value.
      */
     public readSync(key: string, fromSources?: ConfigSource<T>[]): T | undefined {
-
         // Check cache. If cacheIgnoresPriority is enabled, return cached value automatically if it exists.
-        const cacheItem = this.checkCache(key);
-        if(cacheItem && this.params?.cacheIgnoresPriority) {
-            return cacheItem.value;
+        if(this.params?.cacheIgnoresPriority) {
+            const cacheItem = this.scanCache(key);
+            if(cacheItem) {
+                return cacheItem.value;
+            }    
         }
 
         // Initialize result buffer.
-        let resultCandidate: CachedConfigEntity<T> | undefined;
+        let resultCandidate;
+        let runningPriority = -Infinity;
 
-        // If a cached item exists (cacheIgnoresPriority on), it is the starting candidate.
-        if(cacheItem) {
-            resultCandidate = cacheItem;
-        }
+        const canMerge = this.params?.mergeObjects || this.params?.mergeArrays;
 
         // Read in the target config data from potential sources.
         // If the key is an alias, all potential subkeys will be checked.
-        let runningPriority = cacheItem?.priority;
-        let isNewResult;
         for(const knownSource of fromSources ? this.knownSources.filter(x => fromSources.includes(x.source)) : this.knownSources) {
+
             // Skip any source that doesn't exceed a currently-valid priority
+            // If merging is enabled, we should check if equal-priority sources can be merged.
             const sourcePriority = knownSource.priority ?? 0;
-            if(runningPriority !== undefined && runningPriority >= sourcePriority) {
+            if((!canMerge && runningPriority >= sourcePriority) || (canMerge && runningPriority > sourcePriority)) {
                 continue;
             }
+
             // Skip any source with an ignoreIf that evaluates to true
             if(knownSource.ignoreIf?.()) {
                 continue;
             }
-            const readResult = knownSource.source.readSync(key);
-            // Skip any data blocks that do not exist.
-            if(readResult === undefined) {
+
+            // Read value from cache or source if uncached
+            let configEntity = this.checkCache(key, knownSource.source);
+            if(!configEntity) {
+                const value = knownSource.source.readSync(key);
+                // Skip any sources without data for the key
+                if(value === undefined) {
+                    continue;
+                }
+                // Cache newly read value
+                const cacheLength = knownSource.cacheFor ?? this.params?.defaultCacheLength;
+                configEntity =  {
+                    key,
+                    value,
+                    priority: sourcePriority,
+                    source: knownSource.source,
+                    cacheUntil: cacheLength ? Date.now() + cacheLength : Infinity
+                }
+                this.setCache(key, knownSource.source, configEntity);
+            }
+
+            // If we have a new top priority, all earlier results are stomped.
+            if(!resultCandidate || sourcePriority > runningPriority) {
+                runningPriority = sourcePriority;
+                resultCandidate = configEntity;
                 continue;
             }
-            // The candidate is valid.
-            isNewResult = true;
-            runningPriority = knownSource.priority;
-            // Calculate cache length
-            const cacheLength = knownSource.cacheFor ?? this.params?.defaultCacheLength;
-            // Update result candidate
-            resultCandidate = {
-                key,
-                value: readResult,
-                priority: sourcePriority,
-                source: knownSource.source,
-                cacheUntil: cacheLength ? Date.now() + cacheLength : Infinity
-            };
-        }
 
-        // Cache the value if it doesn't exist or has been replaced by a higher-priority result.
-        if(resultCandidate !== undefined && isNewResult) {
-            this.entityCache.set(key, resultCandidate);
+            // Handle merging
+            // Merge arrays if enabled, the new result is an array, and we're already merging into an array
+            if(this.params?.mergeArrays && Array.isArray(configEntity.value) && Array.isArray(resultCandidate.value)) {
+                const merged = [...resultCandidate?.value as T & any[], ...configEntity.value] as T;
+                // Set result candidate to the merged result.
+                // Merged results are never cached and have no priority. They are rebuilt as needed.
+                resultCandidate = {
+                    key,
+                    value: merged,
+                    priority: -Infinity,
+                    source: this,
+                    cacheUntil: -Infinity
+                }
+                continue;
+            }
+            // Merge objects if enabled, the new result is an object, and we're already merging into an object
+            // Arrays would pass this check also but we already handled them.
+            if(this.params?.mergeObjects && this.isObject(configEntity.value) && this.isObject(resultCandidate.value)) {
+                const merged = this.deepMergeObjects(configEntity.value, resultCandidate.value) as T;
+                // Set result candidate to the merged result.
+                // Merged results are never cached and have no priority. They are rebuilt as needed.
+                resultCandidate = {
+                    key,
+                    value: merged,
+                    priority: -Infinity,
+                    source: this,
+                    cacheUntil: -Infinity
+                }
+                continue;
+            }
         }
 
         // Return the value
+        if(resultCandidate) {
+            this.knownValues.set(key, resultCandidate);
+        }
         return resultCandidate?.value;
     }
 
@@ -272,7 +351,7 @@ export class Technician<T> extends ConfigSource<T> {
      * @returns An object containing the key, its cached value, and all related config.
      */
     public describe(key: string): CachedConfigEntity<T> | undefined {
-        return this.entityCache.get(key);
+        return this.knownValues.get(key);
     }
 
     /**
@@ -283,8 +362,8 @@ export class Technician<T> extends ConfigSource<T> {
      */
     public export(): {[key: string]: T} {
         const result: {[key: string]: T} = {};
-        for(const cacheItem of this.entityCache.values()) {
-            result[cacheItem.key] = cacheItem.value;
+        for(const resultItem of this.knownValues.values()) {
+            result[resultItem.key] = resultItem.value;
         }
         return result;
     }
@@ -331,6 +410,20 @@ export class Technician<T> extends ConfigSource<T> {
     }
 
     /** 
+     * Sets a new cache item.
+     * @param key The key.
+     * @param source The origin config source of the value.
+     * @param value The value to cache.
+     */
+    private setCache(key: string, source: ConfigSource<T>, value: CachedConfigEntity<T>): void {
+        const keyCache = this.entityCache.get(key);
+        if(!keyCache) {
+            this.entityCache.set(key, new Map());
+        }
+        this.entityCache.get(key)?.set(source, value);
+    }
+
+    /** 
      * Clears the internal cache.
      * @param key If provided, only deletes a single value from the cache.
      */
@@ -343,24 +436,79 @@ export class Technician<T> extends ConfigSource<T> {
     }
 
     /** 
-     * Reads a key from the cache, checking for validity.
+     * Scans cache entries for a key, checking for validity.
      * Invalid and/or expired entries are automatically removed from the cache.
      * @param key The key.
+     * @param fromSource If set, only looks for cached results from the given source.
      * @returns The cached entity, or undefined if the cached result did not exist or was expired / invalid.
      */
-    private checkCache(key: string): CachedConfigEntity<T> | undefined {
-        const cacheItem = this.entityCache.get(key);
+    private scanCache(key: string): CachedConfigEntity<T> | undefined {
+        const keyCache = this.entityCache.get(key);
+        // Exit early if there are no cached results for the key.
+        if(!keyCache) {
+            return undefined;
+        }
+        // Scan source caches for the key.
+        let cacheItem: CachedConfigEntity<T> | undefined;
+        let runningPriority = -Infinity;
+        for(const source of this.knownSources) {
+            const sourcePriority = source.priority ?? 0;
+            if(sourcePriority > runningPriority) {
+                const candidateItem = this.checkCache(key, source.source);
+                if(candidateItem) {
+                    runningPriority = sourcePriority;
+                    cacheItem = candidateItem;
+                }
+            }
+        }
+        return cacheItem;
+    }
+
+    /** 
+     * Reads a specific cache item from a specific source.
+     * Invalid and/or expired entries are automatically removed from the cache.
+     * @param key The key.
+     * @param fromSource If set, only looks for cached results from the given source.
+     * @returns The cached entity, or undefined if the cached result did not exist or was expired / invalid.
+     */
+    private checkCache(key: string, fromSource: ConfigSource<T>): CachedConfigEntity<T> | undefined {
+        const cacheItem = this.entityCache.get(key)?.get(fromSource);
         // Return nothing if nothing cached.
         if(!cacheItem) {
             return undefined;
         }
-        // If cache is expired, remove it and return nothing.
         if(Date.now() > cacheItem.cacheUntil) {
-            this.entityCache.delete(key);
+            this.entityCache.get(key)?.delete(fromSource);
             return undefined;
         }
-        // Return valid cache item.
         return cacheItem;
+    }
+
+    /** 
+     * Deep merges two objects. Keys in the 2nd object have precedence.
+     * @param a The first object
+     * @param b The second object
+     * @returns The merged object.
+     */
+    private deepMergeObjects(a: {[key: string]: any}, b: T & {[key: string]: any}): {[key: string]: any} {
+        const merged: {[key: string]: any} = { ...a };
+        for(const key of Object.keys(b)) {
+            if(this.isObject(a[key]) && this.isObject(b[key])) {
+                merged[key] = this.deepMergeObjects(a[key], b[key])
+            } else {
+                merged[key] = b[key];
+            }
+        }
+        return merged
+    }
+
+    /** 
+     * Checks if a value T is an Object.
+     * @param value The value.
+     * @returns bool
+     */
+    private isObject(obj: T): obj is T & {[key: string]: any} {
+        return obj === Object(obj)
     }
 
 }

@@ -62,6 +62,49 @@ const technician = new Technician(
 await technician.read('json-key');
 ```
 
+### Merging
+
+Technician can be configured to merge structured data like objects and arrays. If enabled, merged results will be returned from all highest-priority config sources that return the correct data type. When merging objects, the first source to return a particular property gets precedence.
+
+```ts
+const configSource1 = new ManualConfigSource({
+    obj: {
+        key: 'value',
+        deeply: {
+            merged: true
+        }
+    },
+    arr: [1, 2, 3]
+});
+const configSource2 = new ManualConfigSource({
+    obj: {
+        key: 'other-value',
+        only2: 'only2',
+        deeply: {
+            yay: 'technician'
+        }
+    },
+    arr: [4, 5, 6]
+});
+const technician = new Technician([configSource1, configSource2], {
+    mergeArrays: true,
+    mergeObjects: true
+})
+
+const arr = await technician.read('arr');
+// [1, 2, 3, 4, 5, 6]
+
+const obj = await technician.read('obj');
+//  {
+//      key: 'value',
+//      only2: 'only2',
+//      deeply: {
+//          merged: true,
+//          yay: 'technician'
+//      }
+//  }
+```
+
 ## Synchronous Usage
 
 Technician provides `readSync()`, `requireSync()`, `readAllSync()`, and `listSync()` for use with synchronous code. These functions will only search synchronously-accessible config sources, so they may not have the same level of visibility as their async counterparts.
