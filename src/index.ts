@@ -49,6 +49,15 @@ import {
 } from './middleware/interpret/interpreter';
 
 import {
+    Map,
+} from './middleware/map/map';
+
+import {
+    Mapper
+} from './middleware/map/mapper';
+
+
+import {
     Uplevel
 } from './middleware/uplevel/uplevel';
 
@@ -76,6 +85,8 @@ export {
     InterpretBuffer,
     InterpretString,
     Interpreter,
+    Map,
+    Mapper,
     Uplevel,
     Upleveler,
     JSONData,

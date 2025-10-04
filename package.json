@@ -1,6 +1,6 @@
 {
 	"name": "technician",
-	"version": "2.2.0",
+	"version": "2.3.0",
 	"description": "Access, manage, cache, and export all your config from a single service. Supports Typescript w/ typed config value output.",
 	"keywords": [
 		"config",
@@ -26,7 +26,7 @@
 		"testOnly": "nyc --reporter=html --reporter=text mocha -r ts-node/register ./test/**/*.spec.ts",
 		"lint": "eslint ./src --ext .ts",
 		"build": "tsc --project ./tsconfig.json",
-		"docs": "typedoc --out docs --theme ./node_modules/typedoc-dark-theme/bin/default/ src && echo \"Docs generated at ./docs/index.html\"",
+		"docs": "typedoc --out docs src && echo \"Docs generated at ./docs/index.html\"",
 		"prepublishOnly": "npm run build"
 	},
 	"repository": {
@@ -47,6 +47,7 @@
 		"@eslint/eslintrc": "^3.3.1",
 		"@eslint/js": "^9.37.0",
 		"@types/chai": "^5.2.2",
+		"@types/chai-spies": "^1.0.6",
 		"@types/mocha": "^10.0.10",
 		"@types/mockery": "^1.4.33",
 		"@types/node": "^24.6.2",
@@ -54,6 +55,7 @@
 		"@typescript-eslint/eslint-plugin": "^8.45.0",
 		"@typescript-eslint/parser": "^8.45.0",
 		"chai": "^6.2.0",
+		"chai-spies": "^1.1.0",
 		"eslint": "^9.37.0",
 		"mocha": "^11.7.4",
 		"mockery": "^2.1.0",
