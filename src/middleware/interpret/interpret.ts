@@ -60,7 +60,7 @@ export class Interpret {
             try {
                 return text && JSON.parse(text);
             }
-            catch(err) {
+            catch {
                 return undefined;
             }
         }),
@@ -70,7 +70,7 @@ export class Interpret {
             try {
                 return text && JSON.parse(text);
             }
-            catch(err) {
+            catch {
                 return text;
             }
         })
@@ -98,7 +98,7 @@ export class Interpret {
             try {
                 return entity.value && JSON.parse(entity.value);
             }
-            catch(err) {
+            catch {
                 return undefined;
             }
         }),
@@ -107,7 +107,7 @@ export class Interpret {
             try {
                 return entity.value && JSON.parse(entity.value);
             }
-            catch(err) {
+            catch {
                 return entity.value;
             }
         })
