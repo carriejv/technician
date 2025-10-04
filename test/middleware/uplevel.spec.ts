@@ -3,7 +3,7 @@ import { Uplevel, Upleveler, ManualConfigSource } from '../../src';
 
 const VALUE = 'VALUE'
 const OTHER_VALUE = 'OTHER_VALUE';
-const TEST_SOURCE = new ManualConfigSource({
+const TEST_SOURCE = new ManualConfigSource<{[key: string]: unknown}>({
     key: {
         subKey: VALUE
     },
