@@ -7,6 +7,18 @@ export interface TechnicianParams {
     cacheIgnoresPriority?: boolean;
     /** Default cache length in ms. */
     defaultCacheLength?: number;
+    /** 
+     * If true, Technician will merge objects according to priority when config sources return structured data.
+     * By default, the whole object returned by the winning config source will win.
+     * If a higher-priority source returns primitive data, that will still be returned over the merged object.
+     */
+    mergeObjects?: boolean;
+    /** 
+     * If true, Technician will merge arrays according to priority when config sources return array data.
+     * By default, the whole array returned by the winning config source will win.
+     * If a higher-priority source returns primitive data, that will still be returned over the merged object.
+     */
+    mergeArrays?: boolean;
     /** If true, Technician will prioritize running fewer interpreter functions over fewer source reads. */
     //TODO?: expensiveInterpreter?: boolean;
 }

@@ -6,13 +6,49 @@ const VALUE_1 = 'value1';
 const VALUE_2 = 'value2';
 const VALUE_CACHE = 'hi-im-from-the-cache';
 const VALUE_BAD = 'nope-not-this';
+const VALUE_ARR_1 = [1, 2, 3];
+const VALUE_ARR_2 = ['4', '5', '6'];
+const VALUE_OBJ_1 = {
+    key: 'value',
+    key1: 'value1',
+    deep: {
+        key: 'value',
+        key1: 'value1'
+    },
+    stomp: 'stomped'
+};
+const VALUE_OBJ_2 = {
+    key: 'value2',
+    key2: 'value2',
+    deep: {
+        key: 'value2',
+        key2: 'value2'
+    },
+    stomp: 'F'
+};
 const TEST_SOURCE_1 = new ManualConfigSource({
+    only1: VALUE_1,
+    shared: VALUE_1
+});
+const TEST_SOURCE_1_UNCACHED = new ManualConfigSource({
     only1: VALUE_1,
     shared: VALUE_1
 });
 const TEST_SOURCE_2 = new ManualConfigSource({
     only2: VALUE_2,
     shared: VALUE_2
+});
+const TEST_SOURCE_ARR_1 = new ManualConfigSource({
+    arr: VALUE_ARR_1
+});
+const TEST_SOURCE_ARR_2 = new ManualConfigSource({
+    arr: VALUE_ARR_2
+});
+const TEST_SOURCE_OBJ_1 = new ManualConfigSource({
+    obj: VALUE_OBJ_1
+});
+const TEST_SOURCE_OBJ_2 = new ManualConfigSource({
+    obj: VALUE_OBJ_2
 });
 const TEST_SOURCE_FALSY = new ManualConfigSource({
     bool: false,
@@ -117,16 +153,19 @@ describe('Technician', () => {
 
         it('should read from a higher-priority source instead of the cache.', async () => {
             // Build and configure a Technician instance.
-            const tech = new Technician({source: TEST_SOURCE_1, priority: 99});
+            const tech = new Technician([
+                {source: TEST_SOURCE_1},
+                {source: TEST_SOURCE_1_UNCACHED, priority: 99},
+            ]);
 
             // Mock a cache entry
-            (tech as any).entityCache.set('only1', {
+            (tech as any).entityCache.set('only1', new Map().set(TEST_SOURCE_1, {
                 key: 'only1',
                 value: VALUE_CACHE,
                 source: TEST_SOURCE_1,
                 cacheUntil: Infinity,
                 priority: 0
-            });
+            }));
 
             // Test
             const result = await tech.read('only1');
@@ -137,16 +176,19 @@ describe('Technician', () => {
 
         it('should return a cached value instead of reading from a lower-priority source.', async () => {
             // Build and configure a Technician instance.
-            const tech = new Technician({source: TEST_SOURCE_1, priority: -99});
+              const tech = new Technician([
+                {source: TEST_SOURCE_1},
+                {source: TEST_SOURCE_1_UNCACHED, priority: -99},
+            ]);
 
             // Mock a cache entry
-            (tech as any).entityCache.set('only1', {
+            (tech as any).entityCache.set('only1', new Map().set(TEST_SOURCE_1, {
                 key: 'only1',
                 value: VALUE_CACHE,
                 source: TEST_SOURCE_1,
                 cacheUntil: Infinity,
                 priority: 0
-            });
+            }));
 
             // Test
             const result = await tech.read('only1');
@@ -157,16 +199,19 @@ describe('Technician', () => {
 
         it('should read a single config value from the cache with cacheIgnoresPriority.', async () => {
             // Build and configure a Technician instance.
-            const tech = new Technician(TEST_SOURCE_1, {cacheIgnoresPriority: true});
+            const tech = new Technician([
+                {source: TEST_SOURCE_1},
+                {source: TEST_SOURCE_1_UNCACHED, priority: 99},
+            ], {cacheIgnoresPriority: true});
 
             // Mock a cache entry
-            (tech as any).entityCache.set('only1', {
+            (tech as any).entityCache.set('only1', new Map().set(TEST_SOURCE_1, {
                 key: 'only1',
                 value: VALUE_CACHE,
                 source: TEST_SOURCE_1,
                 cacheUntil: Infinity,
                 priority: 0
-            });
+            }));
 
             // Test
             const result = await tech.read('only1');
@@ -175,18 +220,29 @@ describe('Technician', () => {
             expect(result).to.equal(VALUE_CACHE);
         });
 
+        it('should read a single uncached value from a source with cacheIgnoresPriority.', async () => {
+            // Build and configure a Technician instance.
+            const tech = new Technician(TEST_SOURCE_1, {cacheIgnoresPriority: true});
+
+            // Test
+            const result = await tech.read('only1');
+
+            // Assertions
+            expect(result).to.equal(VALUE_1);
+        });
+
         it('should read from source if a cached value is expired.', async () => {
             // Build and configure a Technician instance.
-            const tech = new Technician({source: TEST_SOURCE_1, priority: 99});
+            const tech = new Technician(TEST_SOURCE_1);
 
             // Mock a cache entry
-            (tech as any).entityCache.set('only1', {
+            (tech as any).entityCache.set('only1', new Map().set(TEST_SOURCE_1, {
                 key: 'only1',
                 value: VALUE_CACHE,
                 source: TEST_SOURCE_1,
                 cacheUntil: -Infinity,
                 priority: 0
-            });
+            }));
 
             // Test
             const result = await tech.read('only1');
@@ -235,6 +291,68 @@ describe('Technician', () => {
 
             // Assertions
             expect(result?.cacheUntil).to.be.approximately(Date.now() + 1000, 1000);
+        });
+
+        it('should merge arrays if configured.', async () => {
+            // Build and configure a Technician instance.
+            const tech = new Technician<any[]>([TEST_SOURCE_ARR_1, TEST_SOURCE_ARR_2], {
+                mergeArrays: true
+            });
+
+            // Test
+            const result = await tech.read('arr');
+
+            // Assertions
+            expect(result).to.deep.equal([...VALUE_ARR_1, ...VALUE_ARR_2]);
+        });
+
+        it('should return the first array if not configured to merge.', async () => {
+            // Build and configure a Technician instance.
+            const tech = new Technician<any[]>([TEST_SOURCE_ARR_1, TEST_SOURCE_ARR_2], {
+                mergeArrays: false
+            });
+
+            // Test
+            const result = await tech.read('arr');
+
+            // Assertions
+            expect(result).to.deep.equal(VALUE_ARR_1);
+        });
+
+        it('should merge objects if configured.', async () => {
+            // Build and configure a Technician instance.
+            const tech = new Technician<{[key: string]: any}>([TEST_SOURCE_OBJ_1, TEST_SOURCE_OBJ_2], {
+                mergeObjects: true
+            });
+
+            // Test
+            const result = await tech.read('obj');
+
+            // Assertions
+            expect(result).to.deep.equal({
+                key: 'value',
+                key1: 'value1',
+                key2: 'value2',
+                deep: {
+                    key: 'value',
+                    key1: 'value1',
+                    key2: 'value2'
+                },
+                stomp: 'stomped'
+            });
+        });
+
+        it('should return the first object if not configured to merge.', async () => {
+            // Build and configure a Technician instance.
+            const tech = new Technician<{[key: string]: any}>([TEST_SOURCE_OBJ_1, TEST_SOURCE_OBJ_2], {
+                mergeObjects: false
+            });
+
+            // Test
+            const result = await tech.read('obj');
+
+            // Assertions
+            expect(result).to.deep.equal(VALUE_OBJ_1);
         });
 
     }); // --- End #read
@@ -432,16 +550,19 @@ describe('Technician', () => {
 
         it('should read from a higher-priority source instead of the cache.', () => {
             // Build and configure a Technician instance.
-            const tech = new Technician({source: TEST_SOURCE_1, priority: 99});
+            const tech = new Technician([
+                {source: TEST_SOURCE_1},
+                {source: TEST_SOURCE_1_UNCACHED, priority: 99},
+            ]);
 
             // Mock a cache entry
-            (tech as any).entityCache.set('only1', {
+            (tech as any).entityCache.set('only1', new Map().set(TEST_SOURCE_1, {
                 key: 'only1',
                 value: VALUE_CACHE,
                 source: TEST_SOURCE_1,
                 cacheUntil: Infinity,
                 priority: 0
-            });
+            }));
 
             // Test
             const result = tech.readSync('only1');
@@ -452,16 +573,19 @@ describe('Technician', () => {
 
         it('should return a cached value instead of reading from a lower-priority source.', () => {
             // Build and configure a Technician instance.
-            const tech = new Technician({source: TEST_SOURCE_1, priority: -99});
+              const tech = new Technician([
+                {source: TEST_SOURCE_1},
+                {source: TEST_SOURCE_1_UNCACHED, priority: -99},
+            ]);
 
             // Mock a cache entry
-            (tech as any).entityCache.set('only1', {
+            (tech as any).entityCache.set('only1', new Map().set(TEST_SOURCE_1, {
                 key: 'only1',
                 value: VALUE_CACHE,
                 source: TEST_SOURCE_1,
                 cacheUntil: Infinity,
                 priority: 0
-            });
+            }));
 
             // Test
             const result = tech.readSync('only1');
@@ -472,16 +596,19 @@ describe('Technician', () => {
 
         it('should read a single config value from the cache with cacheIgnoresPriority.', () => {
             // Build and configure a Technician instance.
-            const tech = new Technician(TEST_SOURCE_1, {cacheIgnoresPriority: true});
+            const tech = new Technician([
+                {source: TEST_SOURCE_1},
+                {source: TEST_SOURCE_1_UNCACHED, priority: 99},
+            ], {cacheIgnoresPriority: true});
 
             // Mock a cache entry
-            (tech as any).entityCache.set('only1', {
+            (tech as any).entityCache.set('only1', new Map().set(TEST_SOURCE_1, {
                 key: 'only1',
                 value: VALUE_CACHE,
                 source: TEST_SOURCE_1,
                 cacheUntil: Infinity,
                 priority: 0
-            });
+            }));
 
             // Test
             const result = tech.readSync('only1');
@@ -490,21 +617,32 @@ describe('Technician', () => {
             expect(result).to.equal(VALUE_CACHE);
         });
 
-        it('should read from source if a cached value is expired.', async () => {
+        it('should read a single uncached value from a source with cacheIgnoresPriority.', () => {
             // Build and configure a Technician instance.
-            const tech = new Technician({source: TEST_SOURCE_1, priority: 99});
+            const tech = new Technician(TEST_SOURCE_1, {cacheIgnoresPriority: true});
+
+            // Test
+            const result = tech.readSync('only1');
+
+            // Assertions
+            expect(result).to.equal(VALUE_1);
+        });
+
+        it('should read from source if a cached value is expired.', () => {
+            // Build and configure a Technician instance.
+            const tech = new Technician(TEST_SOURCE_1);
 
             // Mock a cache entry
-            (tech as any).entityCache.set('only1', {
+            (tech as any).entityCache.set('only1', new Map().set(TEST_SOURCE_1, {
                 key: 'only1',
                 value: VALUE_CACHE,
                 source: TEST_SOURCE_1,
                 cacheUntil: -Infinity,
                 priority: 0
-            });
+            }));
 
             // Test
-            const result = await tech.read('only1');
+            const result = tech.readSync('only1');
 
             // Assertions
             expect(result).to.equal(VALUE_1);
@@ -550,6 +688,69 @@ describe('Technician', () => {
 
             // Assertions
             expect(result?.cacheUntil).to.be.approximately(Date.now() + 1000, 1000);
+        });
+
+
+        it('should merge arrays if configured.', () => {
+            // Build and configure a Technician instance.
+            const tech = new Technician<any[]>([TEST_SOURCE_ARR_1, TEST_SOURCE_ARR_2], {
+                mergeArrays: true
+            });
+
+            // Test
+            const result = tech.readSync('arr');
+
+            // Assertions
+            expect(result).to.deep.equal([...VALUE_ARR_1, ...VALUE_ARR_2]);
+        });
+
+        it('should return the first array if not configured to merge.', () => {
+            // Build and configure a Technician instance.
+            const tech = new Technician<any[]>([TEST_SOURCE_ARR_1, TEST_SOURCE_ARR_2], {
+                mergeArrays: false
+            });
+
+            // Test
+            const result = tech.readSync('arr');
+
+            // Assertions
+            expect(result).to.deep.equal(VALUE_ARR_1);
+        });
+
+        it('should merge objects if configured.', () => {
+            // Build and configure a Technician instance.
+            const tech = new Technician<{[key: string]: any}>([TEST_SOURCE_OBJ_1, TEST_SOURCE_OBJ_2], {
+                mergeObjects: true
+            });
+
+            // Test
+            const result = tech.readSync('obj');
+
+            // Assertions
+            expect(result).to.deep.equal({
+                key: 'value',
+                key1: 'value1',
+                key2: 'value2',
+                deep: {
+                    key: 'value',
+                    key1: 'value1',
+                    key2: 'value2'
+                },
+                stomp: 'stomped'
+            });
+        });
+
+        it('should return the first object if not configured to merge.', () => {
+            // Build and configure a Technician instance.
+            const tech = new Technician<{[key: string]: any}>([TEST_SOURCE_OBJ_1, TEST_SOURCE_OBJ_2], {
+                mergeObjects: false
+            });
+
+            // Test
+            const result = tech.readSync('obj');
+
+            // Assertions
+            expect(result).to.deep.equal(VALUE_OBJ_1);
         });
 
     }); // --- End #readSync
@@ -840,20 +1041,20 @@ describe('Technician', () => {
             const tech = new Technician(TEST_SOURCE_1);
 
             // Mock a cache entry
-            (tech as any).entityCache.set('only1', {
+            (tech as any).entityCache.set('only1', new Map().set(TEST_SOURCE_1, {
                 key: 'only1',
                 value: VALUE_BAD,
                 source: TEST_SOURCE_BAD,
                 cacheUntil: Infinity,
                 priority: 0
-            });
-            (tech as any).entityCache.set('shared', {
-                key: 'shared',
+            }));
+            (tech as any).entityCache.set('shared', new Map().set(TEST_SOURCE_1, {
+                key: 'only1',
                 value: VALUE_CACHE,
                 source: TEST_SOURCE_BAD,
                 cacheUntil: Infinity,
                 priority: 0
-            });
+            }));
 
             // Clear the cache
             tech.clearCache('only1');
