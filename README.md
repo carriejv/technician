@@ -133,7 +133,7 @@ after(() => {
 
 A middleware source is a `ConfigSource` that wraps a lower-level source and transforms its outputs.
 
-Technician provides three middleware sources out of the box, `Aliaser`, `Interpreter`, and `Upleveler`.
+Technician provides four middleware sources out of the box, `Aliaser`, `Interpreter`, `Mapper`, and `Upleveler`.
 
 ### Aliases
 
@@ -220,6 +220,26 @@ The `Interpret` package provides several common conversions for both `string` an
     - `JSON.parse()`s values. Invalid JSON is undefined.
 * `asStringOrJSON('utf8' | 'ascii' | ...)`
     - Returns a JSON object or array if the value is valid JSON, else a plaintext string.
+
+### Mapper
+
+Mappers are Alisers that use a mapping function to dynamically build aliases rather than having a static mapping.
+
+Mappers can be built directly as an `Mappers` instance or using the `Map` semantic API:
+```ts
+import { Mapper } from 'technician';
+const mappedSource = new Mapper(myConfigSource, (configKey: string) => path.parse(name));
+```
+```ts
+import { Map } from 'technician';
+const mappedSource = Map.from((configKey: string) => path.parse(name)).on(myConfigSource);
+```
+
+Mappers can also be used to filter results from a config source. If the mapper returns undefined for a given key, that key is filtered from config results.
+```ts
+import { Mapper } from 'technician';
+const mappedSource = new Mapper(myConfigSource, (configKey: string) => configKey.includes('use_this') ? configKey : undefined);
+```
 
 ### Upleveler
 
